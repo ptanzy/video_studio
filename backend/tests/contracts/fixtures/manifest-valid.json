@@ -1,0 +1,20 @@
+{
+  "schema_version": "2.0",
+  "project": {"brand": "WRLD MUSIC", "channel": "WRLD-FI"},
+  "album": {
+    "id": "WRLD-FI-TEST-001",
+    "title": "Test Compilation 001",
+    "artist": "WRLD-FI",
+    "artwork": "artwork/cover.png"
+  },
+  "tracks": [
+    {
+      "id": "T01",
+      "number": 1,
+      "title": "Track One",
+      "file": "tracks/01.wav",
+      "music": {"emotion": "misty, wistful, and not part of a fixed enum"},
+      "creative_metadata": {"unmodeled_note": "retain this source value"}
+    }
+  ]
+}

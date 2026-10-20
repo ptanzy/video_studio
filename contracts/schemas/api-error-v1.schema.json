@@ -18,8 +18,14 @@
       ],
       "properties": {
         "code": {
-          "type": "string",
-          "minLength": 1
+          "enum": [
+            "INVALID_MANIFEST",
+            "IDENTITY_REVIEW_REQUIRED",
+            "DUPLICATE_RECORDING_ID",
+            "REVISION_CONFLICT",
+            "STORAGE_ERROR",
+            "INTERNAL_ERROR"
+          ]
         },
         "message": {
           "type": "string",

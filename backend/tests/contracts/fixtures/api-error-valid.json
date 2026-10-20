@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "REVISION_CONFLICT",
+    "message": "Stored revision differs from expected revision.",
+    "details": {},
+    "correlation_id": "local-request-001"
+  }
+}

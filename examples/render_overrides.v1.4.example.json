@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "base_manifest_sha256": "<computed sha256>",
+  "revision": 1,
+  "shorts": {
+    "T01-S01": {
+      "start_seconds": 45.2,
+      "end_seconds": 75.2,
+      "color_treatment": {
+        "mode": "custom",
+        "hex": "#C38B5F",
+        "intensity": 0.3
+      }
+    }
+  },
+  "publishing_metadata": {
+    "compilation": {
+      "title": "Castle Above the Fog \u2014 Full Compilation",
+      "visibility": "private"
+    },
+    "shorts": {
+      "T01-S01": {
+        "title": "Castle Above the Fog #Shorts",
+        "description": "A quiet moment above the clouds.\n\nFull compilation: {{compilation_url}}"
+      }
+    }
+  }
+}

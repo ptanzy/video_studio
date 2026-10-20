@@ -1,0 +1,11 @@
+Please implement and harden the standalone WRLD YouTube Compilation Builder in this folder.
+
+Read README.md, COPILOT_HANDOFF.md, build_video.py, and manifest.example.json completely before editing. Do not touch the WRLD Music Analyzer or existing WRLD-FI album-planning JSON schemas.
+
+Goal: a small free/offline Python + FFmpeg CLI that accepts an explicitly ordered list of 1–12 local audio tracks, a background image, and titles; creates a 1080p H.264/AAC compilation MP4 with the currently playing track title; and writes a YouTube chapter description and JSON render report. No uploading, AI services, DAW processing, scene animations, or A/B logic.
+
+First inspect the implementation and identify defects or portability risks. Then make the smallest necessary changes to satisfy every acceptance criterion in COPILOT_HANDOFF.md. Add an automated end-to-end smoke test using generated short WAVs and a generated background, plus unit tests for timestamp formatting, input validation, and title escaping. Keep dependencies to Python standard library and FFmpeg if practical. Validate behavior on Windows, including paths with spaces. Do not install anything without asking. Do not commit changes.
+
+After implementation, report changed files, commands to run, tests executed and their results, remaining limitations, and one example manifest for a 12-track compilation.
+
+NEW V2 REQUIREMENTS: Review the optional per-track `shorts` manifest schema and thumbnail outputs. Harden validation (especially NaN/Infinity and malformed shorts arrays), add automated tests, verify correct track-relative extraction (track 5, 45–75 seconds), portrait title safe areas, audio/video duration alignment, backward compatibility, and Windows FFmpeg behavior. Preserve source files. Do not add uploads or external APIs.

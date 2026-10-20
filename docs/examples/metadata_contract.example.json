@@ -1,0 +1,329 @@
+{
+  "schema_version": "video-studio-ingest/1.0-proposal",
+  "contract_status": "PROPOSED — illustrative interchange contract; not the existing manifest-v2 schema",
+  "project": {
+    "id": "wrld-fi",
+    "brand": "WRLD MUSIC",
+    "channel": "WRLD-FI",
+    "genre": "lofi",
+    "season_id": "S01"
+  },
+  "album": {
+    "id": "S01-A08",
+    "title": "The Castle Above the Fog",
+    "artist": "WRLD-FI",
+    "album_artist": "WRLD-FI",
+    "subtitle": null,
+    "release_date": null,
+    "language": "en",
+    "explicit": false,
+    "copyright_notice": null,
+    "license_claims": [],
+    "artwork": {
+      "path": "artwork/cover.png",
+      "alt_text": "Castle above a fog-filled valley",
+      "source": "album_asset"
+    },
+    "identity": {
+      "short_description": "An autumn journey through a Carpathian castle settlement above rising fog.",
+      "long_description": "A layered mountain settlement of river mills, vineyards, monastery and castle, slowly overtaken by mist.",
+      "setting": "fictional Carpathian castle settlement",
+      "story": "The album ascends from river mills to the castle at sunrise.",
+      "themes": [
+        "layered history",
+        "fog as concealment",
+        "seasonal revelation"
+      ],
+      "keywords": [
+        "autumn",
+        "fog",
+        "castle",
+        "lo-fi"
+      ]
+    },
+    "visual_identity": {
+      "palette_names": [
+        "limestone gray",
+        "autumn copper",
+        "fir green",
+        "fog blue"
+      ],
+      "palette_hex": [
+        {
+          "name": "fog blue",
+          "hex": "#71869A"
+        },
+        {
+          "name": "autumn copper",
+          "hex": "#B47B55"
+        },
+        {
+          "name": "fir green",
+          "hex": "#617F72"
+        },
+        {
+          "name": "limestone gray",
+          "hex": "#96928B"
+        }
+      ],
+      "rendering_style": "cinematic painterly realism",
+      "atmosphere": [
+        "autumnal",
+        "wistful",
+        "elevated"
+      ],
+      "avoid": [
+        "horror styling",
+        "neon colors"
+      ]
+    },
+    "music_profile": {
+      "vibe_summary": "fog-bound historical lo-fi with restrained mystery",
+      "primary_genre": "lofi hip-hop",
+      "subgenres": [
+        "ambient lo-fi"
+      ],
+      "default_beat_category": "aimless_drift"
+    },
+    "links": {
+      "channel_url": null,
+      "album_url": null,
+      "website_url": null
+    },
+    "publishing_source": {
+      "description_text": null,
+      "short_description_text": null,
+      "hashtags": [
+        "lofi",
+        "instrumental",
+        "WRLDFI"
+      ],
+      "tags": [
+        "lofi",
+        "instrumental",
+        "ambient"
+      ],
+      "call_to_action": "Subscribe for more WRLD-FI soundscapes."
+    }
+  },
+  "assets": {
+    "root": ".",
+    "artwork_path": "artwork/cover.png",
+    "audio_format_preference": "wav",
+    "output_directory": "outputs/"
+  },
+  "tracks": [
+    {
+      "id": "S01-A08-T01",
+      "recording_id": "S01-A08-T01-A",
+      "number": 1,
+      "title": "Bridge Below the Walls",
+      "artist": "WRLD-FI",
+      "audio": {
+        "path": "tracks/01-bridge-below-the-walls.wav",
+        "sha256": null,
+        "duration_seconds": null,
+        "sample_rate_hz": null,
+        "channels": null,
+        "bit_depth": null,
+        "probe_status": "not_probed"
+      },
+      "creative_source": {
+        "generation_platform": "Suno",
+        "generation_model": null,
+        "prompt_text": "Instrumental atmospheric lo-fi hip-hop, 64 BPM target, fog-bound medieval textures, sparse half-time beat, deep rounded bass, delicate plucks and distant winds.",
+        "negative_prompt_text": "No vocals.",
+        "lyrics": null,
+        "prompt_version": null,
+        "generation_date": null,
+        "source_track_id": null
+      },
+      "scene": {
+        "location": "stone bridge and river mills",
+        "description": "A weathered stone bridge beneath an abandoned hill settlement.",
+        "time_of_day": "misty morning",
+        "weather": "autumn drizzle",
+        "visual_focus": "bridge, watermills, copper leaves, low fog",
+        "keywords": [
+          "river",
+          "fog",
+          "bridge"
+        ]
+      },
+      "music": {
+        "genre": "lofi hip-hop",
+        "subgenres": [
+          "ambient lo-fi"
+        ],
+        "beat_category": "aimless_drift",
+        "mood_text": "curiosity with misty, restrained wonder",
+        "mood_tags": [
+          "curiosity",
+          "fog-bound"
+        ],
+        "energy": 0.22,
+        "tension": 0.2,
+        "brightness": 0.47,
+        "valence": null,
+        "arousal": null,
+        "bpm_target": 64,
+        "bpm_measured": null,
+        "musical_key": null,
+        "time_signature": null,
+        "instruments_expected": [
+          "gayageum",
+          "kobyz",
+          "xiao",
+          "dizi",
+          "electric bass"
+        ],
+        "instruments_observed": [],
+        "instrument_confidence": null,
+        "vocals_expected": false,
+        "vocals_detected": null,
+        "production_notes": "soft snare, spacious ambience, subtle melodic movement"
+      },
+      "analysis": {
+        "status": "not_analyzed",
+        "analyzer_version": null,
+        "analyzed_at": null,
+        "quality": {
+          "overall_score_1_to_5": null,
+          "appeal_score_1_to_5": null,
+          "combined_score": null,
+          "confidence": null,
+          "notes": null
+        },
+        "audio_observations": {
+          "integrated_lufs": null,
+          "true_peak_dbtp": null,
+          "tempo_bpm": null,
+          "key": null,
+          "dynamic_range_db": null,
+          "clipping_detected": null,
+          "silence_start_seconds": null,
+          "silence_end_seconds": null
+        },
+        "short_candidates": [
+          {
+            "id": "S01-A08-T01-S01",
+            "start_seconds": 45.0,
+            "end_seconds": 75.0,
+            "reason": "Illustrative suggested highlight, not measured",
+            "score": null,
+            "source": "manual_example",
+            "status": "unverified"
+          }
+        ],
+        "notes": null
+      },
+      "shorts": [
+        {
+          "id": "S01-A08-T01-S01",
+          "start_seconds": 45.0,
+          "end_seconds": 75.0,
+          "enabled": true,
+          "selection_source": "manual_example",
+          "fade_in_seconds": 0.3,
+          "fade_out_seconds": 0.3,
+          "color_treatment": {
+            "mode": "auto",
+            "intensity": 0.18
+          },
+          "visual": {
+            "layout": "portrait",
+            "background": "blurred_artwork",
+            "motion": "slow_zoom",
+            "grain_enabled": true,
+            "progress_bar_enabled": true,
+            "audio_bars_enabled": true,
+            "title_overlay_enabled": true
+          },
+          "publishing_source": {
+            "title": null,
+            "description": null,
+            "hashtags": [
+              "lofi",
+              "shorts",
+              "WRLDFI"
+            ],
+            "tags": []
+          }
+        }
+      ],
+      "publishing_source": {
+        "title": null,
+        "description": null,
+        "tags": []
+      },
+      "selection": {
+        "status": "unselected",
+        "candidate_label": "A",
+        "is_final": false
+      }
+    }
+  ],
+  "render_preferences": {
+    "compilation": {
+      "enabled": true,
+      "resolution": "1920x1080",
+      "fps": 30,
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "title_overlay": true,
+      "chapter_markers": true
+    },
+    "shorts": {
+      "enabled": true,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "default_duration_seconds": 30
+    },
+    "effects": {
+      "color": {
+        "default_mode": "auto",
+        "fallback": "album_palette_then_original",
+        "max_intensity": 0.6
+      },
+      "slow_motion_artwork": true,
+      "film_grain": true,
+      "audio_reactive_bars": true
+    }
+  },
+  "publishing_preferences": {
+    "platform": "youtube",
+    "default_visibility": "private",
+    "default_language": "en",
+    "compilation": {
+      "title_template": "{album_title} | {channel} Lo-Fi Compilation",
+      "description_template_id": "wrld_album_v1",
+      "generate_chapters": true,
+      "include_tracklist": true,
+      "include_links": true
+    },
+    "shorts": {
+      "title_template": "{track_title} | {album_title} #Shorts",
+      "description_template_id": "wrld_short_v1",
+      "include_compilation_link": true
+    },
+    "metadata_review_required": true,
+    "publish_ready_requires_resolved_links": true
+  },
+  "provenance": {
+    "source_album_json": "WRLD_FI_S01_A08_THE_CASTLE_ABOVE_THE_FOG.json",
+    "source_analysis_json": null,
+    "created_by": "illustrative_contract_example",
+    "reviewed_by_user": false,
+    "review_status": "draft",
+    "updated_at": null
+  },
+  "_notes": {
+    "not_for_production": "This file demonstrates potential properties, not a validated production manifest. No files or audio are claimed to exist.",
+    "nullable_fields": "null means unknown or not yet analyzed; do not substitute guessed measurements.",
+    "authoritative_data": "FFprobe supplies exact durations/codecs; Analyzer supplies observed audio features; prompt and album JSON supply intent; user approves overrides.",
+    "review_policy": "Invalid/unknown mood is preserved as text; propose palette resolution and show its provenance for approval.",
+    "storage_policy": "Persist user changes in separate revisioned overrides, not in the canonical album source."
+  }
+}

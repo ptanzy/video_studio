@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "OVERRIDE_REVISION_CONFLICT",
+    "message": "Changes were made elsewhere; reload before saving.",
+    "request_id": "req-example",
+    "details": {
+      "expected_revision": 3,
+      "actual_revision": 4
+    },
+    "retryable": false
+  }
+}

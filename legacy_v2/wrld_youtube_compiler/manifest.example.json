@@ -1,0 +1,19 @@
+{
+  "album_title": "WRLD-FI — Test Tracks Vol. 1",
+  "background": "background.jpg",
+  "tracks": [
+    {
+      "title": "First Test Track",
+      "file": "tracks/01.wav",
+      "shorts": [
+        {"start_seconds": 45, "end_seconds": 75, "title": "First Test Track — Highlight"},
+        {"start_seconds": 120, "end_seconds": 150}
+      ]
+    },
+    {
+      "title": "Second Test Track",
+      "file": "tracks/02.wav",
+      "shorts": [{"start_seconds": 30, "end_seconds": 60}]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# 27 — UI validation and color comparison (v1.7 normative)
+
+## Screen contract
+Review screen offers Original / Split / Treated views. Split uses a draggable divider with keyboard arrows, accessible slider semantics and visible labels. Both halves must show **the same frame**; never compare two different timestamps. Use the original artwork/frame and a backend-rendered authoritative treated still for approval. Immediate CSS/canvas approximation may appear while waiting, visibly labeled `Approximate preview`, and must not be represented as authoritative. A stale preview is invalidated by artwork hash, treatment settings, renderer version or frame timestamp changes. Errors leave original visible and explain why the treated preview is unavailable.
+
+## Batch metadata grid
+Each row represents one stable output ID, not its display title. Columns: selection, output type, track/Short ID, title, title count/status, description count/status, tags status, visibility, approval status, error details. Counts update on each edit; title >100 Unicode code points and description >5000 Unicode code points are blocking validation errors (API may enforce stricter limits); unresolved placeholders and empty required titles block approval. Display both per-row and aggregate error totals. Long descriptions edit in detail panel, not truncated silently. Bulk edit previews affected row count and applies only explicit fields to selected IDs; no overwrite of unrelated fields. Undo or cancel before save; save atomically with revision checks. Do not conflate validation success with user approval.
+
+## Acceptance checks
+Playwright: compare toggle and keyboard split movement; preview invalidation; backend preview error; title count boundary 100/101, description 5000/5001, Unicode and newline persistence; bulk edit selection isolation; conflicting revision; tab navigation and accessibility labels. Test both loading and empty states. Prototype `docs/ui/index.html` is design-only; app acceptance runs against React.

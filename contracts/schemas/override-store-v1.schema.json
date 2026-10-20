@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WRLD Video Studio override store v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "album_id",
+    "revision",
+    "overrides"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "album_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "overrides": {
+      "type": "object"
+    }
+  }
+}

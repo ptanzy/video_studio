@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.0",
+  "project": {
+    "brand": "WRLD MUSIC",
+    "channel": "WRLD-FI"
+  },
+  "album": {
+    "id": "WRLD-FI-TEST-001",
+    "title": "Test Compilation 001",
+    "artist": "WRLD-FI",
+    "artwork": "artwork/cover.png"
+  },
+  "tracks": [
+    {
+      "id": "T01",
+      "number": 1,
+      "title": "Track One",
+      "file": "tracks/01.wav",
+      "music": {
+        "mood": [
+          "reflective"
+        ]
+      },
+      "shorts": [
+        {
+          "id": "T01-S01",
+          "start_seconds": 45,
+          "end_seconds": 75,
+          "color_profile": "auto"
+        }
+      ]
+    }
+  ]
+}

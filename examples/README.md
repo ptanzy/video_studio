@@ -1,0 +1,1 @@
+Examples are illustrative contract proposals. `<computed sha256>` and `{{compilation_url}}` are unresolved placeholders, not valid runtime values. The former must be replaced before saving; the latter must be resolved before publish-ready export.

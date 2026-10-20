@@ -1,0 +1,1 @@
+{"schema_version":"1.0","job_id":"fixture-job","attempt_id":"fixture-attempt","created_at":"2026-10-20T12:00:00Z","renderer_version":"synthetic-proof-1","request_digest":"not-a-sha256","request":[],"inputs":[{"relative_path":"audio/tone.wav"}]}

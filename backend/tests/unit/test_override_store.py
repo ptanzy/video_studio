@@ -104,8 +104,9 @@ def test_process_death_releases_writer_lock(tmp_path, override_schema, stress_it
         else str(store._lock_path(ALBUM_ID).resolve())
     )
     script = (
-        "import json, os, sys, threading, pywin32_bootstrap; "
-        "from wrld_video_studio.infrastructure.override_store import OverrideStore; "
+        "import json, os, sys, threading; "
+        + ("import pywin32_bootstrap; " if os.name == "nt" else "")
+        + "from wrld_video_studio.infrastructure.override_store import OverrideStore; "
         "store = OverrideStore(sys.argv[1], sys.argv[2]); "
         "lock = store._writer_lock(sys.argv[3]); "
         "owner = lock.__enter__(); "

@@ -274,10 +274,14 @@ def test_process_runner_kills_descendant_after_parent_exits(tmp_path):
 @pytest.mark.skipif(os.name != "nt", reason="Windows Job Object descendant semantics")
 def test_process_runner_kills_windows_descendant_after_parent_exits(tmp_path):
     marker = tmp_path / "windows-descendant-survived.txt"
+    grandchild_code = (
+        "import pathlib,time; time.sleep(0.35); pathlib.Path("
+        + repr(str(marker))
+        + ").write_text('alive')"
+    )
     child = (
         "import subprocess,sys; "
-        "subprocess.Popen([sys.executable,'-c',"
-        f"{('import pathlib,time; time.sleep(0.35); pathlib.Path(' + repr(str(marker)) + ').write_text(\'alive\')')!r}]); "
+        f"subprocess.Popen([sys.executable,'-c',{grandchild_code!r}]); "
         "print('parent-exit',flush=True)"
     )
     started = time.monotonic()

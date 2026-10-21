@@ -35,6 +35,19 @@ pytestmark = pytest.mark.integration_ffmpeg
 MEASURED_MAX_RGB_CODE_ERROR = 1
 
 
+@pytest.fixture(scope="module", autouse=True)
+def require_ffmpeg_toolchain() -> None:
+    runner = SubprocessRunner()
+    tools = MediaToolchain(runner)
+    try:
+        tools.resolve("ffmpeg")
+        tools.resolve("ffprobe")
+    except MediaInfrastructureError as error:
+        if error.code == "MEDIA_TOOL_MISSING":
+            pytest.skip(f"FFmpeg still-render tools unavailable: {error.code}: {error.message}")
+        raise
+
+
 def _chunk(name: bytes, data: bytes) -> bytes:
     return struct.pack(">I", len(data)) + name + data + struct.pack(">I", zlib.crc32(name + data) & 0xFFFFFFFF)
 
@@ -102,13 +115,6 @@ def _resolution(
 def _renderer(tmp_path, timeout_seconds=30.0):
     runner = SubprocessRunner()
     tools = MediaToolchain(runner)
-    try:
-        tools.resolve("ffmpeg")
-        tools.resolve("ffprobe")
-    except MediaInfrastructureError as error:
-        if error.code == "MEDIA_TOOL_MISSING":
-            pytest.skip(f"FFmpeg still-render tools unavailable: {error.code}: {error.message}")
-        raise
     return FFmpegStillImageRenderer(
         tools, runner, tmp_path / "outputs", timeout_seconds=timeout_seconds
     )

@@ -52,6 +52,22 @@ def _chunk(name: bytes, data: bytes) -> bytes:
     return struct.pack(">I", len(data)) + name + data + struct.pack(">I", zlib.crc32(name + data) & 0xFFFFFFFF)
 
 
+def _webp_chunk_types(data: bytes) -> list[bytes]:
+    assert data.startswith(b"RIFF") and data[8:12] == b"WEBP"
+    assert int.from_bytes(data[4:8], "little") + 8 == len(data)
+    offset = 12
+    chunk_types: list[bytes] = []
+    while offset + 8 <= len(data):
+        chunk_type = data[offset : offset + 4]
+        length = int.from_bytes(data[offset + 4 : offset + 8], "little")
+        end = offset + 8 + length
+        assert end <= len(data)
+        chunk_types.append(chunk_type)
+        offset = end + (length & 1)
+    assert offset == len(data)
+    return chunk_types
+
+
 def _write_rgba_png(
     path: Path,
     width: int,
@@ -466,6 +482,10 @@ def test_animated_webp_and_explicit_profile_are_rejected(tmp_path):
             "-frames:v", "2", "-c:v", "libwebp_anim", "-loop", "0", "-y", str(animated),
         ]
     )
+    chunk_types = _webp_chunk_types(animated.read_bytes())
+    assert b"VP8X" in chunk_types
+    assert b"ANIM" in chunk_types
+    assert chunk_types.count(b"ANMF") == 2
     renderer = _renderer(tmp_path)
     treatment = _resolution()
 

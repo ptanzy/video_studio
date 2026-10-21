@@ -43,6 +43,16 @@ class RecordingRunner:
         return text
 
 
+def _webp_chunk(name: bytes, payload: bytes) -> bytes:
+    padding = b"\x00" if len(payload) & 1 else b""
+    return name + len(payload).to_bytes(4, "little") + payload + padding
+
+
+def _webp_container(*chunks: bytes) -> bytes:
+    payload = b"WEBP" + b"".join(chunks)
+    return b"RIFF" + len(payload).to_bytes(4, "little") + payload
+
+
 class CapabilityRunner(RecordingRunner):
     def __init__(self, filters=None, encoders=None) -> None:
         super().__init__()
@@ -258,6 +268,38 @@ def test_animated_frame_count_is_rejected_before_staging(tmp_path, monkeypatch):
 
     assert raised.value.code == "ANIMATED_IMAGE_UNSUPPORTED"
     assert list((tmp_path / "outputs").glob("*.partial.png")) == []
+
+
+def test_webp_animation_container_is_rejected_before_tool_discovery(tmp_path):
+    source = tmp_path / "animated.webp"
+    source.write_bytes(
+        _webp_container(
+            _webp_chunk(b"VP8X", b"\x02" + b"\x00" * 9),
+            _webp_chunk(b"ANIM", b"\x00" * 6),
+            _webp_chunk(b"ANMF", b"\x00" * 16),
+        )
+    )
+    runner = RecordingRunner()
+    renderer = _renderer(tmp_path, runner)
+
+    with pytest.raises(MediaInfrastructureError) as raised:
+        renderer.render(_request(source))
+
+    assert raised.value.code == "ANIMATED_IMAGE_UNSUPPORTED"
+    assert runner.calls == []
+
+
+def test_truncated_webp_animation_chunk_remains_a_corrupt_input_error(tmp_path):
+    source = tmp_path / "truncated.webp"
+    source.write_bytes(
+        _webp_container(_webp_chunk(b"VP8X", b"\x02" + b"\x00" * 9))
+        + b"ANIM\x06\x00\x00\x00\x00"
+    )
+
+    with pytest.raises(MediaInfrastructureError) as raised:
+        _read_image_metadata(source)
+
+    assert raised.value.code == "IMAGE_UNSUPPORTED_OR_CORRUPT"
 
 
 def test_embedded_profile_is_rejected_before_tool_discovery(tmp_path):

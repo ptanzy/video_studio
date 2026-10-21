@@ -741,6 +741,9 @@ def _webp_metadata(data: bytes) -> tuple[int, bool]:
     offset = 12
     orientation = 1
     has_profile = False
+    has_animation_flag = False
+    has_animation_control = False
+    has_animation_frame = False
     while offset + 8 <= len(data):
         chunk_type = data[offset : offset + 4]
         length = int.from_bytes(data[offset + 4 : offset + 8], "little")
@@ -748,13 +751,23 @@ def _webp_metadata(data: bytes) -> tuple[int, bool]:
         if end > len(data):
             raise MediaInfrastructureError("IMAGE_UNSUPPORTED_OR_CORRUPT", "WebP chunk is truncated.")
         payload = data[offset + 8 : end]
-        if chunk_type == b"EXIF":
+        if chunk_type == b"VP8X" and payload:
+            has_animation_flag = bool(payload[0] & 0x02)
+        elif chunk_type == b"ANIM":
+            has_animation_control = True
+        elif chunk_type == b"ANMF":
+            has_animation_frame = True
+        elif chunk_type == b"EXIF":
             if payload.startswith(b"Exif\x00\x00"):
                 payload = payload[6:]
             orientation = _parse_tiff_orientation(payload)
         elif chunk_type == b"ICCP":
             has_profile = True
         offset = end + (length & 1)
+    if has_animation_flag and has_animation_control and has_animation_frame:
+        raise MediaInfrastructureError(
+            "ANIMATED_IMAGE_UNSUPPORTED", "Animated image input is not supported."
+        )
     return orientation, has_profile
 
 

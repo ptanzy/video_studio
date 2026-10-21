@@ -351,7 +351,9 @@ Phase 1 has been implemented within the authorized pure-domain boundary. The fol
 - Domain/application layering has no FastAPI/FFmpeg/React dependency (Docs 32 and 34).
 - Existing manifest, override-store, API-error, and WU2 snapshot schemas remain unchanged in this phase.
 
-### Decisions still requiring product approval
+### Decisions that remained pending after Phase 1
+
+The 2026-10-21 Phase 2 recovery authorization recorded in Section 15 approves the implemented resolver and preset mapping **for provisional Phase 2 v1 compatibility only**. It does not make these permanent project-wide requirements. The following historical list remains relevant to any later stabilization or incompatible revision.
 
 1. Approve, revise, or replace the preset IDs and complete provisional HEX mapping.
 2. Approve the exact Auto palette tie-break. Proposed first entry after validating every palette entry, no numeric weighting initially; otherwise state deterministic rule and whether supplied features affect selection.
@@ -383,8 +385,8 @@ This handoff is self-contained; do not rely on prior chat or session memory.
 
 1. Start by reading `AGENTS.md`, Docs 18, 22, 25, 27, 31, 32, 34, 35, this document, and inspect actual WU1/WU2 source/tests. Doc 32 controls WU3 scope; Doc 31 controls conflicts and approval.
 2. Verify branch, HEAD, clean/dirty status, and master relationship before edits. Do not assume the baseline in this document remains current.
-3. Do not treat any **PROPOSED — PENDING APPROVAL** item as an approved requirement. Phase 1 code exists, but its provisional aesthetic mappings and contract choices still need product approval before they are treated as stable. Obtain approval for any change to those choices.
-4. Do not expand past Phase 1 until separately authorized. Focused/full test evidence for the current Phase 1 state is recorded in Section 12.1; rerun after any code change and report actual commands/results.
+3. Section 15 is the approval record for provisional Phase 2 v1. It supersedes the earlier pending-approval labels only for the exact Phase 2 choices listed there; those choices are not permanent project-wide requirements. Obtain approval for any incompatible change.
+4. Phase 2 recovery is authorized only through the tested boundary in Section 15. Do not proceed to Phase 3 while FFmpeg integration and decoded-pixel tolerances remain unverified.
 5. Reuse WU2 process/tool/filesystem patterns only in later approved phases. Keep the still renderer separate from `SyntheticMediaEncoder` and do not change synthetic WU2 schemas, worker semantics, or tests.
 6. Do not implement routes, frontend, persistence, full Review, waveform, full album/Short rendering, upload, motion preview/effects, or CI changes without their phase-specific contracts and approval.
 7. Never edit `legacy_v2/`. Never compare encoded file bytes as visual output equivalence. Preserve all prior tests and source files.
@@ -392,3 +394,195 @@ This handoff is self-contained; do not rely on prior chat or session memory.
 ### AGENTS.md compatibility note
 
 Current `AGENTS.md` is compatible with this plan: it requires read-before-change, no invented requirements, user approval, and no legacy-v2 changes. A future, separately authorized update could add a pointer to this Doc 37 and state that its proposals are non-normative until approved. Do not modify `AGENTS.md` as part of this task.
+
+## 15. WU3 Phase 2 recovery implementation record (2026-10-21)
+
+### 15.1 Approval scope and status
+
+The user approved the following choices for **provisional Phase 2 v1 implementation**, not as permanent project-wide requirements:
+
+- transform `linear-luma-chroma-v1`, using the existing linear-light, source-luminance-preserving chroma algorithm;
+- resolver `1.0.0-provisional.1` and preset mapping `provisional-1`, including their existing preset table, as the only Phase 1 versions accepted by this renderer;
+- PNG, JPEG, and WebP still input; one PNG output; 40 MiB, 40 megapixel, and 10,000-pixel-side input limits; longest output side 1024 pixels with aspect preservation and no upscale;
+- EXIF orientations 1 through 8, independent alpha handling, ordinary sRGB/untagged-sRGB inputs, and explicit rejection of embedded ICC or unsupported profile metadata;
+- WU2 process-runner/tool-discovery reuse, explicit FFmpeg capability checks, configurable render timeout defaulting to 30 seconds, cancellation, owned staging cleanup, no-replace publication, source immutability checks, and typed failures;
+- decoded-pixel comparison rather than encoded PNG byte identity.
+
+The implementation status is **PARTIALLY COMPLETE**. Contracts, domain mathematics, Python/runtime validation, fake-runner orchestration, and unit coverage are verified. Authoritative FFmpeg rendering, supported-build decoded-pixel tolerance measurement, and the full real-media matrix are unverified because no FFmpeg or FFprobe executable is available in the current environment. No tool was downloaded or installed.
+
+### 15.2 Final provisional contracts and versions
+
+- `still-render-request-v1`
+- `still-render-result-v1`
+- renderer `ffmpeg-still-v1`
+- transform `linear-luma-chroma-v1`
+- nested Phase 1 output `color-resolution-output-v1`
+- resolver `1.0.0-provisional.1`
+- preset mapping `provisional-1`
+
+`contracts/schemas/still-render-v1.schema.json` is Draft 2020-12 and references `color-resolution-v1.schema.json#/$defs/output` rather than copying its branch table. The Phase 1 schema now pins the exact supported resolver and preset-mapping versions. Consequently the nested still contract and the Python adapter reject fabricated versions and contradictory mode/HEX/intensity/preset/source/reason combinations under the same Phase 1 rules. Still requests also pin renderer/transform versions and a lowercase relative `.png` destination with no absolute, drive-qualified, or parent-traversal path. Results pin PNG/RGBA metadata, dimensions in `[1,1024]`, normalized EXIF orientation text, hashes, treatment, tool version, and a non-empty sanitized command.
+
+Positive and negative JSON fixtures cover valid request/result envelopes, contradictory Phase 1 output, and unsupported version identifiers. Contract tests also nest every generated Phase 1 resolver branch in a still request.
+
+### 15.3 Exact `linear-luma-chroma-v1` mathematics
+
+For each source RGB channel `s` represented in sRGB `[0,1]`, decode to linear light:
+
+```text
+decode(s) = s / 12.92                                  when s <= 0.04045
+          = ((s + 0.055) / 1.055) ^ 2.4               otherwise
+```
+
+Let decoded source be `S = (Sr,Sg,Sb)` and decoded target HEX be `T`. Rec.709 linear luminance is:
+
+```text
+Y(V) = 0.2126 Vr + 0.7152 Vg + 0.0722 Vb
+```
+
+For target luminance `Yt > 0`, target chromaticity is `C = T / Yt`. At intensity `a` in inclusive `[0,0.6]`, form:
+
+```text
+Q = (1 - a) S + a Y(S) C
+N = (Y(S), Y(S), Y(S))
+D = Q - N
+```
+
+Gamut handling desaturates toward the same-luminance neutral point. Starting from `k = 1`, include `(1-Y)/Di` for every `Di > 0` and `Y/(-Di)` for every `Di < 0`, then set `k` to the minimum of those values clamped to `[0,1]`. The output linear channel is `Oi = clamp(Ni + k Di, 0, 1)`. This preserves source luminance before final 8-bit quantization while keeping channels in gamut.
+
+Encode each channel back to sRGB:
+
+```text
+encode(o) = 12.92 o                                    when o <= 0.0031308
+          = 1.055 o ^ (1 / 2.4) - 0.055               otherwise
+```
+
+The Python reference quantizes with `floor(clamp(channel,0,1) * 255 + 0.5)`, meaning round-to-nearest with exact ties upward. `original`, intensity zero, a zero-luminance source, and target `#000000` are defined untreated/no-op cases after that declared 8-bit quantization. Black is not an error. Alpha never participates in RGB math and is carried on a separate FFmpeg path.
+
+The candidate FFmpeg graph explicitly requests full-range RGB, Rec.709 primaries, sRGB/linear transfer conversion, no dithering, explicit `[0,1]` clamps, and an RGB24 quantization boundary before alpha merge. Its exact supported-build rounding difference has not been measured in this environment and is therefore not yet an accepted tolerance claim.
+
+### 15.4 Image, execution, cancellation, and artifact policy
+
+- Source validation first checks regular-file existence, non-empty size, the 40 MiB limit, supported suffix, container signature, and profile metadata. It then validates FFmpeg capabilities and performs a bounded metadata probe.
+- Container codec must match `.png`, `.jpg`/`.jpeg`, or `.webp`. Positive dimensions are checked against 10,000 pixels per side and 40 megapixels before the more expensive frame-count pass. Frame count must be exactly one.
+- EXIF orientation is parsed and normalized explicitly; oriented dimensions drive aspect-preserving, no-upscale sizing to a maximum side of 1024.
+- Required FFmpeg filters are `alphaextract`, `alphamerge`, `format`, `geq`, `hflip`, `scale`, `split`, `transpose`, `vflip`, and `zscale`; required encoder is `png`. Missing, failed, timed-out, and cancelled capability probes have typed failures.
+- Render timeout is constructor-configurable and defaults to 30 seconds. The caller's cancellation event is passed through capability, probe, render, and verification process calls where the WU2 runner supports it; cancellation before tool access is also honored.
+- Output is created in an owned sibling staging file, flushed, and atomically hard-linked to the final path without replacement. Case-insensitive `.wrld-staging` and `.wrld-promotions` path variants are reserved. Staging is removed on success, failure, timeout, or cancellation. A cleanup failure is retained in typed diagnostics; a post-publication cleanup failure is marked `commit_state: committed`.
+- The source SHA-256 is computed before rendering and checked again before publication. The renderer never intentionally writes source artwork.
+- Stable error categories now distinguish invalid/unsupported contracts, versions, resolution data and paths; missing capabilities; corrupt, oversized, animated, profile-bearing, or extension-mismatched images; timeout/cancellation; invalid output; collision; source change; and storage failure.
+
+These choices do not modify or route through the WU2 `SyntheticMediaEncoder`, job worker, MP4 verifier, schemas, or production behavior.
+
+### 15.5 Independent reference and current test evidence
+
+The FFmpeg integration test no longer calls the production transform to compute expected pixels. It has a separate test-side implementation of sRGB transfer, Rec.709 luminance, chromaticity interpolation, gamut scaling, clamping, and ties-up quantization. Pure unit tests add reviewed fixed 8-bit vectors for neutral gray, near-black, near-white, saturated red/green/blue, a neutral target, black no-op, transfer boundaries, gamut bounds, and quantization ties. Integration cases cover custom/preset treatment, intensity `0.6`, original/zero/black, alpha, repeat rendering, collision, source immutability, invalid input, and resizing logic; real media cases are currently skipped at tool discovery.
+
+Final recovery validation on Windows 11, CPython 3.12.3, using the existing `.venv`:
+
+- `python -m pytest backend/tests/contracts -q` — **87 passed**.
+- `python -m pytest backend/tests/unit -q` — **230 passed, 3 skipped**; the skips are the existing Windows POSIX/symlink limitations.
+- `python -m pytest backend/tests/unit/test_still_image_renderer.py backend/tests/unit/test_color_transform.py -q` — **64 passed**.
+- `python -m pytest backend/tests/integration/test_wu3_still_renderer.py -q -rs` — **1 passed, 5 skipped**; all five media cases report `MEDIA_TOOL_MISSING` for FFmpeg.
+- `python -m pytest backend/tests -q` — **319 passed, 13 skipped**. Five WU2 and five WU3 integration skips are due to missing FFmpeg; three are the existing Windows POSIX/symlink limitations.
+
+No cross-version or cross-platform PNG byte-identity claim is made. The current integration assertion contains an explicitly named, unverified analytical two-code-value ceiling only to retain a future executable comparison; it is not a measured acceptance threshold and cannot satisfy Phase 2 completion.
+
+### 15.6 Unverified behavior, remaining Phase 2 work, and Phase 3 dependency
+
+The following work requires a compatible existing or separately provisioned FFmpeg/FFprobe environment:
+
+1. Validate reported filters/encoder and the full graph syntax on the supported FFmpeg build.
+2. Decode PNG/JPEG/WebP fixtures and cover animated input, EXIF orientations 1–8, alpha, resize/no-upscale boundaries, profile rejection, Unicode paths, corrupt output, real timeout/cancellation/reaping, repeat determinism, and source immutability end to end.
+3. Measure per-channel/aggregate decoded-pixel error against the independent reference over neutral ramps, near-black/highlights, saturated sources/targets, presets/custom colors, black, and intensity endpoints. Replace the unverified analytical ceiling with the measured and approved tolerance.
+4. Repeat on the supported Windows/Linux and Python/FFmpeg matrix and record tool builds and color/pixel metadata. Compare decoded pixels, not encoded PNG bytes.
+
+Phase 3 preview service/caching remains out of scope and must not begin until the authoritative still path and its measured decoded-pixel contract are verified and accepted. Phase 4 UI, Phase 5 broader visual regression, motion, album/Short rendering, and WU4-WU6 remain excluded.
+
+## 16. WU3 Phase 2 Windows FFmpeg verification (2026-10-21)
+
+This section supersedes Section 15's statements that FFmpeg was unavailable and that the graph/tolerance were unverified. It does not authorize Phase 3 and does not make one Windows build a cross-platform guarantee.
+
+### 16.1 Approved installation and integrity evidence
+
+The user approved a user-local Gyan FFmpeg release-essentials installation. No repository dependency, global/system setting, or existing installation was modified.
+
+- Publisher archive: `ffmpeg-release-essentials.zip`, 114,768,076 bytes.
+- Publisher SHA-256: `60F467265B1E312373DBCD92200C2618A74850F98D3D078E94296BB3FA2047BA`.
+- Downloaded SHA-256: `60F467265B1E312373DBCD92200C2618A74850F98D3D078E94296BB3FA2047BA`.
+- Extraction occurred only after the hashes matched.
+- Install root: `C:\Users\ptanz\AppData\Local\Programs\FFmpeg`.
+- Extracted content: 45 files, 329,221,735 bytes.
+- Temporary archive and checksum files were removed after successful extraction.
+- Tests set `WRLD_FFMPEG_PATH` and `WRLD_FFPROBE_PATH` only in their command processes. No persistent WRLD variable or PATH change was made. A separate pre-existing WinGet Gyan 9.0.1 installation remains on the user PATH and was not used or modified; every recorded verification command used the explicit 9.0.2 paths below.
+
+Executable evidence:
+
+- FFmpeg: `C:\Users\ptanz\AppData\Local\Programs\FFmpeg\ffmpeg-9.0.2-essentials_build\bin\ffmpeg.exe`; SHA-256 `3256173F3F8BFFD7DF12227C68ADF68025EDB1832273A9530688A7BB1ED8EDEC`.
+- FFprobe: `C:\Users\ptanz\AppData\Local\Programs\FFmpeg\ffmpeg-9.0.2-essentials_build\bin\ffprobe.exe`; SHA-256 `F0D36ECBBDD3BCFAC3EFA078C96C7271C2E68B3810595552AC3B7F17E9A65C52`.
+- Both report `9.0.2-essentials_build-www.gyan.dev`, built with GCC 16.2.0 (MSYS2 Rev3).
+
+Build configuration reported by both tools:
+
+```text
+--enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-cairo --enable-fontconfig --enable-iconv --enable-gnutls --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-zlib --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-sdl2 --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxvid --enable-libaom --enable-libopenjpeg --enable-libvpx --enable-mediafoundation --enable-libass --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-dxva2 --enable-d3d11va --enable-d3d12va --enable-ffnvcodec --enable-libvpl --enable-nvdec --enable-nvenc --enable-vaapi --enable-openal --enable-libgme --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libtheora --enable-libvo-amrwbenc --enable-libgsm --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-librubberband
+```
+
+Reported library versions are libavutil 61.1.102, libavcodec/libavformat 63.1.102, libavdevice/libavfilter 63.1.102/12.1.102, libswscale 10.1.102, and libswresample 7.1.102.
+
+### 16.2 Verified capabilities
+
+Token-based enumeration against the actual binary confirmed every required filter: `alphaextract`, `alphamerge`, `format`, `geq`, `hflip`, `scale`, `split`, `transpose`, `vflip`, and `zscale`. The native `png` video encoder is present. PNG, MJPEG/JPEG, static WebP, and animated WebP decoders are present; the renderer accepts only the approved static `png`, `mjpeg`, and `webp` inputs and rejects `webp_anim` with `ANIMATED_IMAGE_UNSUPPORTED`.
+
+### 16.3 Verified adapter defects and repairs
+
+Real execution revealed three adapter defects. None required changing the approved mathematical model.
+
+1. The recovered graph converted RGBA to `gbrpf32le` through FFmpeg's format filter before inverse sRGB transfer. On this build, 8-bit white became float `0.9961547256`, then linear `0.9912750125`, producing gamut-boundary RGB errors up to five codes. Direct RGBA into zscale preserved white but premultiplied translucent RGB by alpha. The repaired graph therefore drops alpha through a lossless `format=rgb24` boundary, then performs zscale linearization; alpha continues independently through the existing split/extract/merge path.
+2. FFmpeg copied source PNG `eXIf` into the already explicitly oriented output despite `-map_metadata -1`. Normal decoders then applied the stale orientation a second time. The renderer now removes only `eXIf` chunks from its owned staged PNG before verification/publication. Real tests cover orientations 1 through 8 and verify that output metadata returns to orientation 1.
+3. FFprobe 9.0.2 identifies animated WebP as codec `webp_anim`; the recovered codec whitelist classified it as generic corrupt/unsupported input before frame counting. It is now rejected directly with the stable animated-input error.
+
+### 16.4 Decoded-pixel measurement
+
+The independent test implementation remains separate from production transform code. The measurement matrix contains 28 source RGB values: a neutral ramp including black, near-black, midtones, near-white and white; saturated primaries and secondaries; mixed saturated colors; and additional near-black colors. Alpha cycles through 28 values. Eleven render cases cover all five colored presets, custom saturated/neutral/white/black targets, intensities `0.0`, `0.3`, and `0.6`, and no-op behavior.
+
+Before the RGB-boundary repair, 924 RGB channel comparisons produced `{0: 881, 1: 33, 2: 4, 3: 2, 4: 2, 5: 2}`, maximum error 5 and MAE 0.070346320; the small MAE hid serious boundary outliers. After the repair:
+
+- RGB comparisons: 924.
+- Error histogram in 8-bit code values: `{0: 635, 1: 289}`.
+- Maximum absolute RGB error: 1 code value.
+- RGB MAE: 0.312770563 code values.
+- Alpha comparisons: 308; maximum error 0.
+- Original, zero intensity, and black target are byte-exact no-ops in the tested PNG matrix.
+
+The provisional two-code ceiling is removed. The Windows/Gyan 9.0.2 acceptance bound is now a measured maximum of one 8-bit RGB code value per channel with exact alpha. Encoded PNG bytes are not compared or claimed stable.
+
+### 16.5 Real-media and regression evidence
+
+The expanded WU3 integration suite exercises PNG, JPEG, lossless WebP, animated WebP rejection, all EXIF orientations, alpha, preset/custom/black/original/zero treatments, neutral and saturated reference pixels, actual 1200x600 to 1024x512 downscaling, no-upscale behavior, Unicode paths, ICC/profile rejection, deterministic repeat output, no-replace collision, source immutability, real timeout cleanup, pre-cancellation, corrupt/unsupported/oversized input, traversal rejection, and independent decoded-pixel comparison.
+
+Executed on Windows 11 and CPython 3.12.3 with explicit Gyan 9.0.2 paths:
+
+- `python -m pytest backend/tests/integration/test_wu3_still_renderer.py -q -rs` — **19 passed** in 20.43 seconds.
+- `python -m pytest backend/tests/unit/test_still_image_renderer.py backend/tests/unit/test_color_transform.py backend/tests/integration/test_wu3_still_renderer.py -q -rs` — **83 passed** in 21.29 seconds.
+- `python -m pytest backend/tests/contracts -q` — **87 passed**.
+- `python -m pytest backend/tests/unit -q` — **230 passed, 3 skipped**.
+- `python -m pytest backend/tests -q -rs` — **342 passed, 3 skipped** in 47.12 seconds on the final documented file state. This executed all five existing WU2 FFmpeg integrations and all WU3 media integrations. The remaining skips are one POSIX-only process-group test and two Windows directory-symlink tests lacking privilege.
+- `python -m compileall -q backend/src backend/tests` — passed.
+
+One initial WU3 run transiently skipped a case when Windows Job Object ownership setup failed during tool discovery. A direct rerun passed, the integration skip helper was narrowed to skip only `MEDIA_TOOL_MISSING`, and subsequent complete WU3/full-suite runs passed without hiding ownership failures.
+
+### 16.6 Status and remaining coverage
+
+The authoritative Phase 2 still renderer is **verified on Windows 11 with Gyan FFmpeg/FFprobe 9.0.2 essentials**. Remaining gaps are Linux execution, Python 3.11, other FFmpeg builds/versions, mid-process (rather than pre-start) real cancellation timing, broader JPEG/WebP samples and color-tag variants, and cross-platform confirmation that the one-code bound holds. These are portability/coverage gaps, not known Windows reference-build defects. Phase 3 remains out of scope and must not begin from this verification record alone without its separate authorization.
+
+## 17. WU3 Visual Rendering CI baseline
+
+`.github/workflows/wu3-visual-rendering.yml` adds dedicated WU3 automation for pushes and pull requests targeting `master` or `feature/wu3-visual-rendering`, plus manual dispatch. It grants only read access to repository contents.
+
+The CI matrix is Ubuntu/Python 3.11 for WU3 media compatibility and Ubuntu/Python 3.12 plus Windows/Python 3.12 for contract, unit, WU3 real-media, and complete backend regression. The existing WU1/WU2 workflows retain their broader non-media Python coverage; the dedicated WU3 workflow does not repeat the complete pre-WU3 suite on its Python 3.11 compatibility entry.
+
+Media tools are downloaded into the ephemeral runner directory and supplied through `WRLD_FFMPEG_PATH` and `WRLD_FFPROBE_PATH`; CI does not depend on runner-preinstalled tools or mutate global configuration. Windows uses the immutable Gyan `9.0.2-essentials_build` ZIP and publisher SHA-256 `60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba`. Linux uses BtbN's retained `autobuild-2026-09-30-13-08` GPL/static archive from the FFmpeg 9.0 release branch (`n9.0.2-17-g2a571b6068`) and published SHA-256 `68ee646831adaae2495618346f3bba94ff207ff83bbd34d643e7004730d66269`.
+
+The builds are intentionally not claimed to be byte-identical: Windows is Gyan's MSYS2/GCC essentials build at upstream 9.0.2, while Linux is a BtbN static GPL release-branch build containing 17 later branch commits. Before tests, both must expose the required filters, PNG/JPEG/WebP fixture encoders, PNG/JPEG/WebP decoders (including animated WebP identification), and FFprobe. A missing tool or capability fails before pytest, so the WU3 suite cannot succeed through its tool-missing skip. Legitimate test-owned OS skips, such as POSIX versus Windows process-tree behavior or unavailable Windows symlink privilege, remain unchanged.
+
+Python dependencies continue to use the repository's approved editable test installation, `python -m pip install -e ".[test]"`. The WU3-only `.github/wu3-ci-constraints.txt` snapshot pins the resolved runtime and test dependency graph, while pinned pip/setuptools versions and `--no-build-isolation` prevent an unbounded build backend from being fetched. `pip check` and a logged `pip freeze` expose the installed graph. Production dependency declarations in `pyproject.toml` are unchanged.

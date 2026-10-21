@@ -1,0 +1,27 @@
+{
+  "contract_version": "still-render-result-v1",
+  "artifact_path": "previews/treated.png",
+  "source_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "treatment": {
+    "contract_version": "color-resolution-output-v1",
+    "mode": "custom",
+    "resolved_hex": "#ABCDEF",
+    "preset_id": null,
+    "intensity": 0.3,
+    "source": "user_selection",
+    "reason": "explicit_custom",
+    "resolver_version": "1.0.0-provisional.1",
+    "preset_mapping_version": "provisional-1",
+    "input_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "width": 1024,
+  "height": 576,
+  "output_format": "png",
+  "renderer_version": "ffmpeg-still-v1",
+  "transform_version": "linear-luma-chroma-v1",
+  "ffmpeg_version": "ffmpeg version fixture",
+  "input_pixel_format": "rgba",
+  "output_pixel_format": "rgba",
+  "orientation": "EXIF orientation 1 normalized explicitly",
+  "sanitized_command": ["ffmpeg", "-nostdin", "<source>", "<output>"]
+}

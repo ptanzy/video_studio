@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wrld.example/contracts/color-resolution-v1.schema.json",
   "title": "WRLD color resolution v1",
-  "description": "Provisional WU3 color resolver input or output contract. Preset colors remain pending approval.",
+  "description": "Provisional WU3 color resolver input or output contract. Phase 2 v1 pins this exact resolver and preset-mapping version.",
   "oneOf": [
     { "$ref": "#/$defs/input" },
     { "$ref": "#/$defs/output" }
@@ -127,8 +127,8 @@
             "first_palette_entry", "album_default_original", "album_default_preset", "no_usable_auto_color"
           ]
         },
-        "resolver_version": { "type": "string", "minLength": 1 },
-        "preset_mapping_version": { "type": "string", "minLength": 1 },
+        "resolver_version": { "const": "1.0.0-provisional.1" },
+        "preset_mapping_version": { "const": "provisional-1" },
         "input_fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
     },

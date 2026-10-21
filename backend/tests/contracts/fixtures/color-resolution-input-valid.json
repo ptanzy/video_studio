@@ -1,0 +1,17 @@
+{
+  "contract_version": "color-resolution-input-v1",
+  "treatment": {
+    "mode": "auto",
+    "intensity": 0.3
+  },
+  "context": {
+    "track_preference": null,
+    "album_palette": [
+      { "name": "first", "hex": "#123456" },
+      { "name": "second", "hex": "#ABCDEF" }
+    ],
+    "album_default_preset": "warm",
+    "mood": "unrestricted Unicode mood \u2601",
+    "features": { "energy": 0.7 }
+  }
+}

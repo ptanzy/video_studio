@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.example/contracts/color-resolution-v1.schema.json",
+  "title": "WRLD color resolution v1",
+  "description": "Provisional WU3 color resolver input or output contract. Preset colors remain pending approval.",
+  "oneOf": [
+    { "$ref": "#/$defs/input" },
+    { "$ref": "#/$defs/output" }
+  ],
+  "$defs": {
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "normalizedHex": {
+      "type": "string",
+      "pattern": "^#[0-9A-F]{6}$"
+    },
+    "intensity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.6
+    },
+    "presetId": {
+      "type": "string",
+      "enum": ["original", "cool", "warm", "lavender", "teal", "dark"]
+    },
+    "treatment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["mode", "intensity"],
+          "properties": {
+            "mode": { "const": "auto" },
+            "intensity": { "$ref": "#/$defs/intensity" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["mode", "preset", "intensity"],
+          "properties": {
+            "mode": { "const": "preset" },
+            "preset": { "$ref": "#/$defs/presetId" },
+            "intensity": { "$ref": "#/$defs/intensity" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["mode", "hex", "intensity"],
+          "properties": {
+            "mode": { "const": "custom" },
+            "hex": { "$ref": "#/$defs/hex" },
+            "intensity": { "$ref": "#/$defs/intensity" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "feature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "track_preference": {
+          "type": ["object", "null"],
+          "properties": { "hex": { "$ref": "#/$defs/hex" } },
+          "required": ["hex"],
+          "additionalProperties": false
+        },
+        "album_palette": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["hex"],
+            "properties": {
+              "hex": { "$ref": "#/$defs/hex" },
+              "name": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "album_default_preset": { "$ref": "#/$defs/presetId" },
+        "mood": { "type": ["string", "null"] },
+        "features": {
+          "type": "object",
+          "properties": {
+            "brightness": { "$ref": "#/$defs/feature" },
+            "energy": { "$ref": "#/$defs/feature" },
+            "tension": { "$ref": "#/$defs/feature" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "input": {
+      "type": "object",
+      "required": ["contract_version", "treatment"],
+      "properties": {
+        "contract_version": { "const": "color-resolution-input-v1" },
+        "treatment": { "$ref": "#/$defs/treatment" },
+        "context": { "$ref": "#/$defs/context" }
+      },
+      "additionalProperties": false
+    },
+    "outputBase": {
+      "type": "object",
+      "required": [
+        "contract_version", "mode", "resolved_hex", "preset_id", "intensity",
+        "source", "reason", "resolver_version", "preset_mapping_version", "input_fingerprint"
+      ],
+      "properties": {
+        "contract_version": { "const": "color-resolution-output-v1" },
+        "mode": { "enum": ["auto", "preset", "custom"] },
+        "resolved_hex": { "anyOf": [{ "$ref": "#/$defs/normalizedHex" }, { "type": "null" }] },
+        "preset_id": { "anyOf": [{ "$ref": "#/$defs/presetId" }, { "type": "null" }] },
+        "intensity": { "$ref": "#/$defs/intensity" },
+        "source": { "enum": ["user_selection", "track_preference", "album_palette", "album_default", "fallback"] },
+        "reason": {
+          "enum": [
+            "explicit_custom", "explicit_original", "explicit_preset", "explicit_track_preference",
+            "first_palette_entry", "album_default_original", "album_default_preset", "no_usable_auto_color"
+          ]
+        },
+        "resolver_version": { "type": "string", "minLength": 1 },
+        "preset_mapping_version": { "type": "string", "minLength": 1 },
+        "input_fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "output": {
+      "allOf": [
+        { "$ref": "#/$defs/outputBase" },
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "mode": { "const": "custom" },
+                "resolved_hex": { "$ref": "#/$defs/normalizedHex" },
+                "preset_id": { "type": "null" },
+                "source": { "const": "user_selection" },
+                "reason": { "const": "explicit_custom" }
+              }
+            },
+            { "properties": { "mode": { "const": "preset" }, "resolved_hex": { "const": "#71869A" }, "preset_id": { "const": "cool" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "user_selection" }, "reason": { "const": "explicit_preset" } } },
+            { "properties": { "mode": { "const": "preset" }, "resolved_hex": { "const": "#B47B55" }, "preset_id": { "const": "warm" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "user_selection" }, "reason": { "const": "explicit_preset" } } },
+            { "properties": { "mode": { "const": "preset" }, "resolved_hex": { "const": "#887A9B" }, "preset_id": { "const": "lavender" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "user_selection" }, "reason": { "const": "explicit_preset" } } },
+            { "properties": { "mode": { "const": "preset" }, "resolved_hex": { "const": "#5F817B" }, "preset_id": { "const": "teal" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "user_selection" }, "reason": { "const": "explicit_preset" } } },
+            { "properties": { "mode": { "const": "preset" }, "resolved_hex": { "const": "#48525A" }, "preset_id": { "const": "dark" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "user_selection" }, "reason": { "const": "explicit_preset" } } },
+            {
+              "properties": {
+                "mode": { "const": "preset" },
+                "resolved_hex": { "type": "null" },
+                "preset_id": { "const": "original" },
+                "intensity": { "const": 0 },
+                "source": { "const": "user_selection" },
+                "reason": { "const": "explicit_original" }
+              }
+            },
+            {
+              "properties": {
+                "mode": { "const": "auto" },
+                "resolved_hex": { "$ref": "#/$defs/normalizedHex" },
+                "preset_id": { "type": "null" },
+                "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 },
+                "source": { "const": "track_preference" },
+                "reason": { "const": "explicit_track_preference" }
+              }
+            },
+            {
+              "properties": {
+                "mode": { "const": "auto" },
+                "resolved_hex": { "$ref": "#/$defs/normalizedHex" },
+                "preset_id": { "type": "null" },
+                "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 },
+                "source": { "const": "album_palette" },
+                "reason": { "const": "first_palette_entry" }
+              }
+            },
+            { "properties": { "mode": { "const": "auto" }, "resolved_hex": { "const": "#71869A" }, "preset_id": { "const": "cool" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "album_default" }, "reason": { "const": "album_default_preset" } } },
+            { "properties": { "mode": { "const": "auto" }, "resolved_hex": { "const": "#B47B55" }, "preset_id": { "const": "warm" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "album_default" }, "reason": { "const": "album_default_preset" } } },
+            { "properties": { "mode": { "const": "auto" }, "resolved_hex": { "const": "#887A9B" }, "preset_id": { "const": "lavender" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "album_default" }, "reason": { "const": "album_default_preset" } } },
+            { "properties": { "mode": { "const": "auto" }, "resolved_hex": { "const": "#5F817B" }, "preset_id": { "const": "teal" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "album_default" }, "reason": { "const": "album_default_preset" } } },
+            { "properties": { "mode": { "const": "auto" }, "resolved_hex": { "const": "#48525A" }, "preset_id": { "const": "dark" }, "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 }, "source": { "const": "album_default" }, "reason": { "const": "album_default_preset" } } },
+            {
+              "properties": {
+                "mode": { "const": "auto" },
+                "resolved_hex": { "type": "null" },
+                "preset_id": { "const": "original" },
+                "intensity": { "const": 0 },
+                "source": { "const": "album_default" },
+                "reason": { "const": "album_default_original" }
+              }
+            },
+            {
+              "properties": {
+                "mode": { "const": "auto" },
+                "resolved_hex": { "type": "null" },
+                "preset_id": { "const": "original" },
+                "intensity": { "const": 0 },
+                "source": { "const": "fallback" },
+                "reason": { "const": "no_usable_auto_color" }
+              }
+            }
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

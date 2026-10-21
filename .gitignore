@@ -5,3 +5,4 @@ __pycache__/
 *.egg-info/
 build/
 dist/README_WU2_v1.9.txt
+README_WU*_v*.txt

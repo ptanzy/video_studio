@@ -19,3 +19,13 @@ def test_domain_and_application_sources_do_not_import_infrastructure_or_framewor
                 for name in imported
                 for forbidden in forbidden_roots
             ), source_path
+
+
+def test_artwork_source_port_and_use_case_do_not_depend_on_filesystem_adapter():
+    source_root = Path(__file__).resolve().parents[2] / "src" / "wrld_video_studio"
+    for relative_path in (
+        Path("application/ports/artwork_sources.py"),
+        Path("application/artwork_sources.py"),
+    ):
+        source = (source_root / relative_path).read_text(encoding="utf-8")
+        assert "wrld_video_studio.infrastructure" not in source

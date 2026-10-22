@@ -1,0 +1,31 @@
+{
+  "contract_version": "preview-result-v1",
+  "preview_id": "1111111111111111111111111111111111111111111111111111111111111111",
+  "cache_status": "miss",
+  "retrieval_reference": "preview:1111111111111111111111111111111111111111111111111111111111111111",
+  "media_type": "image/png",
+  "width": 1024,
+  "height": 512,
+  "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "source_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "treatment": {
+    "contract_version": "color-resolution-output-v1",
+    "mode": "custom",
+    "resolved_hex": "#ABCDEF",
+    "preset_id": null,
+    "intensity": 0.3,
+    "source": "user_selection",
+    "reason": "explicit_custom",
+    "resolver_version": "1.0.0-provisional.1",
+    "preset_mapping_version": "provisional-1",
+    "input_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "provenance": {
+    "cache_key_version": "preview-cache-key-v1",
+    "resolver_version": "1.0.0-provisional.1",
+    "preset_mapping_version": "provisional-1",
+    "renderer_version": "ffmpeg-still-v1",
+    "transform_version": "linear-luma-chroma-v1",
+    "toolchain_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444"
+  }
+}

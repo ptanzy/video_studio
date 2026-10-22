@@ -586,3 +586,71 @@ Media tools are downloaded into the ephemeral runner directory and supplied thro
 The builds are intentionally not claimed to be byte-identical: Windows is Gyan's MSYS2/GCC essentials build at upstream 9.0.2, while Linux is a BtbN static GPL release-branch build containing 17 later branch commits. Before tests, both must expose the required filters, PNG/JPEG/WebP fixture encoders, PNG/JPEG/WebP decoders (including animated WebP identification), and FFprobe. A missing tool or capability fails before pytest, so the WU3 suite cannot succeed through its tool-missing skip. Legitimate test-owned OS skips, such as POSIX versus Windows process-tree behavior or unavailable Windows symlink privilege, remain unchanged.
 
 Python dependencies continue to use the repository's approved editable test installation, `python -m pip install -e ".[test]"`. The WU3-only `.github/wu3-ci-constraints.txt` snapshot pins the resolved runtime and test dependency graph, while pinned pip/setuptools versions and `--no-build-isolation` prevent an unbounded build backend from being fetched. `pip check` and a logged `pip freeze` expose the installed graph. Production dependency declarations in `pyproject.toml` are unchanged.
+
+## 18. WU3 Phase 3A preview contracts and deterministic cache identity (2026-10-21)
+
+### 18.1 Approval scope and architecture status
+
+The user separately authorized Phase 3A after the Phase 2 and CI baselines above. This phase implements only pure preview contracts, validation, and deterministic cache identity. It does not implement source lookup or hashing, a filesystem cache, eviction, single-flight coordination, render scheduling, a worker, FFmpeg orchestration, HTTP/FastAPI routes, Pydantic models, frontend behavior, or animated previews. Phase 1 resolution, Phase 2 rendering, WU2 behavior, and `legacy_v2` remain unchanged.
+
+The approved working architecture is synchronous and bounded, with an opaque server-owned artwork asset identifier. Its Phase 3A grammar is exactly 1–128 ASCII letters, digits, underscores, or hyphens (`^[A-Za-z0-9_-]{1,128}$`); periods, whitespace, Unicode, URL punctuation, drive delimiters, and path separators are rejected. Album, track, and Short identifiers remain request context and provenance, not pixel identity, and are not unnecessarily restricted by the artwork-ID policy. A caller cannot supply a local path or any trusted source, resolver, renderer, toolchain, cache, or verification metadata. The later Phase 3B source resolver must perform exact lookup of the opaque identifier in a server-owned registry and must never interpret it as a filesystem path. The later service is expected to use same-key single-flight generation, one active preview render, bounded waiting, WU2/full-render priority, and exact-key invalidation; none of that coordination is implemented in Phase 3A.
+
+The following operational values are configurable provisional defaults, not permanent product requirements: 2 GiB maximum cache size, 2,000 entries, and 4 waiting requests. Phase 3A exposes the constants but does not implement storage, eviction, or waiting.
+
+### 18.2 Versioned contracts
+
+`contracts/schemas/preview-v1.schema.json` is a strict Draft 2020-12 schema with four definitions and no unknown properties:
+
+- `preview-request-v1` contains a target (`album_id`, opaque `artwork_asset_id`, optional `track_id`, optional `short_id`), a Phase 1-compatible treatment selection, and the sole variant `authoritative_still`.
+- `preview-result-v1` contains the preview ID, `hit`/`miss`, an opaque `preview:<sha256>` retrieval reference, `image/png`, dimensions, artifact and source hashes, the immutable Phase 1 resolved treatment, and cache-key/resolver/mapping/renderer/transform/toolchain provenance.
+- `preview-error-v1` contains a typed code, non-empty message, JSON-compatible details, and correlation ID. Codes distinguish invalid request, source unavailable or changed, unsupported image, render failure, cancellation, timeout, capacity exhaustion, cache corruption, and internal failure. `SOURCE_CHANGED` deliberately preserves the existing Phase 2 mutation signal. HTTP status mappings are deferred to the adapter phase.
+- `preview-cache-key-v1` describes the authoritative pixel inputs used to derive a preview ID.
+
+The request schema reuses the Phase 1 treatment definition rather than pretending that a custom HEX selection is a complete resolved treatment. The result schema reuses the Phase 1 output definition. Request validation rejects paths, source hashes, resolved colors, version claims, binary fingerprints, cache keys, output paths, verification claims, and every other unknown field. JSON Schema provides structural validation only: it cannot prove that individually valid hashes, treatment provenance, and version fields came from the expected cache identity. `PreviewResult.from_dict()` therefore requires a separately supplied trusted `PreviewCacheIdentity` and additionally enforces semantic relationships, including `retrieval_reference == "preview:" + preview_id` and exact equality of every identity-derived field.
+
+### 18.3 Cache descriptor and canonicalization
+
+`backend/src/wrld_video_studio/domain/preview_cache.py` builds an immutable descriptor only from a server-derived full source SHA-256, a validated `ColorResolution`, and validated FFmpeg/FFprobe executable SHA-256 values. The Phase 3A boundary validator checks the complete applicable Phase 1 output contract: contract/resolver/mapping versions; mode; preset membership and preset-to-HEX mapping; normalized HEX; finite intensity; source/reason provenance; lowercase input fingerprint; and all mode, preset, treatment, and provenance cross-field invariants. Fabricated dataclass instances cannot enter identity or result construction merely by having plausible pixel fields. The builder does not accept a raw request, path, timestamp, context identifier, or caller-selected policy/version value.
+
+The descriptor includes:
+
+1. cache-key version;
+2. source content SHA-256;
+3. treated/untreated state, effective uppercase HEX or null, and effective intensity;
+4. resolver and preset-mapping versions;
+5. renderer and transform versions;
+6. geometry and EXIF-orientation policy versions;
+7. maximum longest side, no-upscale policy, Lanczos scaling, and no-dither policy;
+8. PNG/RGBA output and the declared RGB color metadata;
+9. exact FFmpeg and FFprobe executable SHA-256 values.
+
+The preview ID is the lowercase SHA-256 of existing strict canonical JSON (`UTF-8`, sorted keys, compact separators, finite values only). Hashes must be lowercase 64-character hexadecimal strings. Negative zero is normalized to positive zero. Malformed hashes, non-finite numbers, inconsistent treated/untreated state, and unsupported versions or policies fail validation; they never receive substituted defaults. Untreated and treated-black states remain distinct. A separate toolchain fingerprint canonically hashes the two binary fingerprints with its own `preview-toolchain-fingerprint-v1` version.
+
+The fixed independent test vector for source hash `3` repeated 64 times, custom `#ABCDEF` at `0.3`, FFmpeg hash `5` repeated 64 times, and FFprobe hash `6` repeated 64 times produces preview ID `7c2eadb17a2cfab9ed55570d6e68f72ee848b26d29af8307045df02cd60e84b3`. The expected descriptor and digest are constructed in the test without calling the production builder.
+
+### 18.4 Trust boundary and source mutation
+
+The caller-facing model accepts preference and context only. Trusted cache construction requires the concrete Phase 1 output type and a server-created toolchain identity; render policy is constructed internally from pinned Phase 2 values. Each cache identity retains its complete validated `ColorResolution` alongside—but not inside—the hashed descriptor. Pixel-equivalent custom, preset, and auto resolutions can therefore share a preview ID without losing the provenance for the current request. Every trusted `PreviewResult` carries a required, non-serialized identity binding. Its frozen dataclass post-initializer verifies preview ID, source hash, complete treatment provenance, cache/resolver/mapping/renderer/transform versions, toolchain fingerprint, and retrieval reference against that identity. The factory derives those fields from the identity; direct construction and `dataclasses.replace()` execute the same checks. `from_dict()` cannot establish trust from JSON alone and requires the expected identity from trusted server context. Frozen, slotted value objects and recursively frozen error details prevent mutable nested results.
+
+`PreviewError.create()` treats `None` as empty details, accepts mappings, and rejects sequence-to-mapping coercion, non-string keys, non-finite values, malformed Unicode, and other non-JSON values. Nested objects and arrays are recursively frozen internally and thawed to schema-compatible JSON objects and arrays only for serialization.
+
+Phase 3A intentionally does not open or hash source files. A later source adapter must hash the source before rendering, supply that digest to the identity builder, and rely on Phase 2's existing before-publication mutation check. If the source changes during rendering, the operation must return `SOURCE_CHANGED`, publish no artifact for the original key, and require the changed bytes to produce a new source digest and therefore a new key.
+
+### 18.5 Validation evidence
+
+Validation used Windows 11, CPython 3.12.3, the existing repository `.venv`, and—only for the full regression—the explicit approved Gyan FFmpeg/FFprobe 9.0.2 paths from Section 16. No dependency was installed and no persistent environment setting was changed.
+
+- Phase 3A focused unit and contract tests: **188 passed**.
+- Complete contract suite: **178 passed**.
+- Complete unit suite: **329 passed, 3 skipped**. The skips are the existing POSIX process-group test and two Windows directory-symlink privilege cases.
+- Complete backend suite with real WU2/WU3 media integrations: **532 passed, 3 skipped** in 43.12 seconds on the final trust-boundary repair state.
+- Python compilation of `backend/src` and `backend/tests`: passed.
+- `git diff --check`: passed.
+
+Phase 3A itself is independently testable without FFmpeg; the explicit tools were used only to prevent established integration coverage from silently skipping during the complete regression.
+
+The correction suite mutates every cache-descriptor leaf and proves each affects the digest, while separately proving album/track/Short context IDs do not. Identity-binding regressions substitute every authoritative result field with a validly formatted but incorrect value through direct construction, `dataclasses.replace()`, and untrusted JSON parsing. They also prove that same-key custom/preset resolutions cannot exchange request-specific provenance. Schema-valid integral JSON numbers such as `1.0` are normalized to Python integers during trusted parsing. Policy-drift coverage compares the Phase 3A descriptor against the exported Phase 2 renderer/max-dimension constants and exercises Phase 2's actual scaling, no-upscale behavior, explicit orientation filter, Lanczos/no-dither graph, PNG/RGBA output, and declared color metadata. Some Phase 2 policy strings remain intentionally duplicated because Phase 2 does not export a complete policy object; changing or centralizing those production values is outside Phase 3A. The behavioral comparison is the current drift detector, and any future policy change requires review of cache-key versioning.
+
+### 18.6 Deferred work and next boundary
+
+Phase 3B should implement only the server-owned artwork asset resolver and source snapshot/hash boundary needed to turn a validated request target into trusted source identity. It should define containment, regular-file and symlink policy, mutation/error propagation, and tests without adding cache storage, coordination, HTTP routes, or UI. Filesystem cache publication/verification/eviction, single-flight scheduling and WU2 priority, API mapping, and frontend review remain separate Phase 3C-3E decisions. Any future compatibility-family toolchain policy, new supported renderer/resolver/geometry/output policy, arbitrary preview dimensions, or changed cache identity requires explicit approval and an appropriate version change.

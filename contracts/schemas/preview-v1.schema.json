@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.example/contracts/preview-v1.schema.json",
+  "title": "WRLD authoritative still preview contracts v1",
+  "description": "Pure WU3 Phase 3A request, result, error, and deterministic cache-key descriptor contracts. No filesystem paths or HTTP status mappings are part of this contract.",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/result" },
+    { "$ref": "#/$defs/errorEnvelope" },
+    { "$ref": "#/$defs/cacheDescriptor" }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artworkAssetId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+    },
+    "treatmentSelection": {
+      "$ref": "https://wrld.example/contracts/color-resolution-v1.schema.json#/$defs/treatment"
+    },
+    "resolvedTreatment": {
+      "$ref": "https://wrld.example/contracts/color-resolution-v1.schema.json#/$defs/output"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["album_id", "artwork_asset_id"],
+      "properties": {
+        "album_id": { "$ref": "#/$defs/identifier" },
+        "artwork_asset_id": { "$ref": "#/$defs/artworkAssetId" },
+        "track_id": { "$ref": "#/$defs/identifier" },
+        "short_id": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "target", "treatment", "variant"],
+      "properties": {
+        "contract_version": { "const": "preview-request-v1" },
+        "target": { "$ref": "#/$defs/target" },
+        "treatment": { "$ref": "#/$defs/treatmentSelection" },
+        "variant": { "const": "authoritative_still" }
+      }
+    },
+    "treatmentIdentity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "resolved_hex", "intensity", "resolver_version", "preset_mapping_version"],
+          "properties": {
+            "state": { "const": "untreated" },
+            "resolved_hex": { "type": "null" },
+            "intensity": { "const": 0 },
+            "resolver_version": { "const": "1.0.0-provisional.1" },
+            "preset_mapping_version": { "const": "provisional-1" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "resolved_hex", "intensity", "resolver_version", "preset_mapping_version"],
+          "properties": {
+            "state": { "const": "treated" },
+            "resolved_hex": { "type": "string", "pattern": "^#[0-9A-F]{6}$" },
+            "intensity": { "type": "number", "minimum": 0, "maximum": 0.6 },
+            "resolver_version": { "const": "1.0.0-provisional.1" },
+            "preset_mapping_version": { "const": "provisional-1" }
+          }
+        }
+      ]
+    },
+    "renderPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "renderer_version", "transform_version", "geometry_policy_version", "orientation_policy_version",
+        "max_longest_side", "no_upscale", "scale_filter", "dither", "output_format", "output_pixel_format",
+        "color_primaries", "color_transfer", "color_space"
+      ],
+      "properties": {
+        "renderer_version": { "const": "ffmpeg-still-v1" },
+        "transform_version": { "const": "linear-luma-chroma-v1" },
+        "geometry_policy_version": { "const": "phase2-still-geometry-v1" },
+        "orientation_policy_version": { "const": "phase2-exif-orientation-v1" },
+        "max_longest_side": { "const": 1024 },
+        "no_upscale": { "const": true },
+        "scale_filter": { "const": "lanczos" },
+        "dither": { "const": "none" },
+        "output_format": { "const": "png" },
+        "output_pixel_format": { "const": "rgba" },
+        "color_primaries": { "const": "bt709" },
+        "color_transfer": { "const": "iec61966-2-1" },
+        "color_space": { "const": "rgb" }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ffmpeg_sha256", "ffprobe_sha256"],
+      "properties": {
+        "ffmpeg_sha256": { "$ref": "#/$defs/sha256" },
+        "ffprobe_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "cacheDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "source_sha256", "treatment", "render_policy", "toolchain"],
+      "properties": {
+        "contract_version": { "const": "preview-cache-key-v1" },
+        "source_sha256": { "$ref": "#/$defs/sha256" },
+        "treatment": { "$ref": "#/$defs/treatmentIdentity" },
+        "render_policy": { "$ref": "#/$defs/renderPolicy" },
+        "toolchain": { "$ref": "#/$defs/toolchain" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cache_key_version", "resolver_version", "preset_mapping_version", "renderer_version",
+        "transform_version", "toolchain_fingerprint"
+      ],
+      "properties": {
+        "cache_key_version": { "const": "preview-cache-key-v1" },
+        "resolver_version": { "const": "1.0.0-provisional.1" },
+        "preset_mapping_version": { "const": "provisional-1" },
+        "renderer_version": { "const": "ffmpeg-still-v1" },
+        "transform_version": { "const": "linear-luma-chroma-v1" },
+        "toolchain_fingerprint": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version", "preview_id", "cache_status", "retrieval_reference", "media_type", "width",
+        "height", "artifact_sha256", "source_sha256", "treatment", "provenance"
+      ],
+      "properties": {
+        "contract_version": { "const": "preview-result-v1" },
+        "preview_id": { "$ref": "#/$defs/sha256" },
+        "cache_status": { "enum": ["hit", "miss"] },
+        "retrieval_reference": { "type": "string", "pattern": "^preview:[a-f0-9]{64}$" },
+        "media_type": { "const": "image/png" },
+        "width": { "type": "integer", "minimum": 1, "maximum": 1024 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 1024 },
+        "artifact_sha256": { "$ref": "#/$defs/sha256" },
+        "source_sha256": { "$ref": "#/$defs/sha256" },
+        "treatment": { "$ref": "#/$defs/resolvedTreatment" },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
+    "errorCode": {
+      "enum": [
+        "PREVIEW_INVALID_REQUEST", "PREVIEW_SOURCE_UNAVAILABLE", "SOURCE_CHANGED", "PREVIEW_IMAGE_UNSUPPORTED",
+        "PREVIEW_RENDER_FAILED", "PREVIEW_CANCELLED", "PREVIEW_TIMEOUT",
+        "PREVIEW_CAPACITY_EXHAUSTED", "PREVIEW_CACHE_CORRUPT", "PREVIEW_INTERNAL_ERROR"
+      ]
+    },
+    "errorEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "error"],
+      "properties": {
+        "contract_version": { "const": "preview-error-v1" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "details", "correlation_id"],
+          "properties": {
+            "code": { "$ref": "#/$defs/errorCode" },
+            "message": { "type": "string", "minLength": 1 },
+            "details": { "type": "object" },
+            "correlation_id": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  }
+}

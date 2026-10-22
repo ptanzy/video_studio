@@ -1,0 +1,30 @@
+{
+  "contract_version": "preview-cache-key-v1",
+  "source_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "treatment": {
+    "state": "treated",
+    "resolved_hex": "#ABCDEF",
+    "intensity": 0.3,
+    "resolver_version": "1.0.0-provisional.1",
+    "preset_mapping_version": "provisional-1"
+  },
+  "render_policy": {
+    "renderer_version": "ffmpeg-still-v1",
+    "transform_version": "linear-luma-chroma-v1",
+    "geometry_policy_version": "phase2-still-geometry-v1",
+    "orientation_policy_version": "phase2-exif-orientation-v1",
+    "max_longest_side": 1024,
+    "no_upscale": true,
+    "scale_filter": "lanczos",
+    "dither": "none",
+    "output_format": "png",
+    "output_pixel_format": "rgba",
+    "color_primaries": "bt709",
+    "color_transfer": "iec61966-2-1",
+    "color_space": "rgb"
+  },
+  "toolchain": {
+    "ffmpeg_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "ffprobe_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  }
+}

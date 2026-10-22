@@ -729,4 +729,64 @@ Final Windows validation on the corrected uncommitted state produced:
 
 The four Phase 3B Windows skips are the cleanup-substitution, snapshot-root replacement, source-component, and trusted-root symbolic-link tests; this user context lacks symbolic-link privilege. Real Windows junction tests for source traversal, cleanup substitution, and snapshot-root replacement passed. The three unit-suite skips remain the established POSIX process-group case and two WU2 directory-symlink privilege cases.
 
-Live Linux execution remains outstanding. The deterministic tests exercise descriptor classification and ownership but do not substitute for the real `fstatfs`, `openat`, and no-follow behavior on Ubuntu. The existing WU3 GitHub Actions workflow can exercise the corrected tests on Ubuntu once the changes exist in a pushed commit or branch. GitHub Actions cannot execute this uncommitted working tree, and no local Linux/WSL runtime is configured; creating a temporary commit or branch solely for CI would be a repository mutation requiring separate approval. No such mutation was made during these corrections.
+Phase 3B's live Linux gate subsequently passed on committed baseline `6c6f1190ae8df9c9fb844b9b695726a972f99337`. WU3 Visual Rendering run [#6](https://github.com/ptanzy/video_studio/actions/runs/39776876409) completed successfully on 2026-10-22. Its Ubuntu/Python 3.12 reference job ran the complete backend suite on a native GitHub-hosted Ubuntu filesystem, so the Phase 3B acquisition module exercised real `statfs`/`fstatfs`, root-relative `openat`, `O_NOFOLLOW`, descriptor ownership/closure, source snapshot integrity, symbolic-link rejection, and snapshot-root failure handling. The Ubuntu/Python 3.11 compatibility job did not run the complete suite at that baseline. Windows-only junction, drive-classification, and UNC cases remained platform skips on Ubuntu; remote/FUSE/unknown filesystem magic rejection used deterministic classification doubles because CI does not provide privileged hostile mounts. WU1 Foundation [#18](https://github.com/ptanzy/video_studio/actions/runs/39776876473) and WU2 Media Infrastructure [#14](https://github.com/ptanzy/video_studio/actions/runs/39776876329) also passed for the same commit. Phase 3B is accepted; those privileged-mount exclusions remain documented threat-model coverage limits rather than an open acceptance gate.
+
+## 20. WU3 Phase 3C-1 secure preview-cache storage (2026-10-22)
+
+### 20.1 Approved boundary and implemented API
+
+Phase 3C-1 implements only disposable authoritative-preview storage. It adds a framework-independent `PreviewCacheStore` port with `lookup()`, `begin_write()`, `discard_corrupt()`, `enforce_limits()`, and explicit `close()` ownership. `PreviewCacheStagingLease` owns one private render destination and can publish it once. `PreviewArtifactLease` owns a verified open read handle, exposes immutable artifact metadata plus `read()`/`seek()`, and must be closed before its entry can be evicted. No consumer-facing raw cache pathname is returned. Closing the store while artifact leases remain pinned or staging leases remain active fails rather than silently releasing process ownership. Successful publication and explicit staging closure each release their lifecycle registration exactly once.
+
+The accepted Phase 3A `PreviewCacheIdentity`, descriptor, canonical cache-key algorithm, public schemas, and fixed digest are unchanged. The private manifest version is `preview-cache-entry-v1`; it contains only the preview ID, complete pixel-affecting Phase 3A descriptor, and verified artifact SHA-256, byte size, dimensions, and `image/png` media type. It does not serialize request-specific `ColorResolution` provenance, source paths, cache paths, timestamps, or caller-supplied verification claims. Canonical JSON encoding and an exact field/type/version policy are required during lookup.
+
+Phase 3C-1 does not acquire a Phase 3B source, invoke Phase 2 rendering, coordinate requests, choose WU2 versus preview admission, or construct `PreviewResult`. Trusted treatment/context loading and preview-service orchestration remain Phase 3C-3 responsibilities. Shared non-preemptive WU2-priority admission, same-key single flight, the four-admitted-waiter limit, and the required but not yet product-selected wait timeout remain Phase 3C-2.
+
+### 20.2 Layout, integrity, and atomic publication
+
+The cache root must already exist. The adapter reuses the accepted Phase 3B platform root inspection: Windows rejects UNC/remote/unknown volumes and every reparse root; Linux requires the explicit local-filesystem allowlist and no-follow directory support; other POSIX platforms fail closed. Root device/file identity and canonical final path are retained and revalidated throughout operation. A process-global identity claim plus the existing `portalocker` dependency holds a root-local lock for the store lifetime; lock path and open-handle identity, regular-file type, non-reparse status, and single-link ownership are rechecked. A private exclusive write probe establishes writability without chmod or deleting a file it did not create.
+
+Managed layout is:
+
+```text
+<cache-root>/
+  .preview-cache.lock
+  .preview-cache-staging/entry-<random-128-bit-id>/
+    preview.png
+    entry.json
+  entries/<first-two-cache-key-hex>/<complete-cache-key>/
+    preview.png
+    entry.json
+```
+
+Publication validates the staged file through a no-follow regular-file handle, rejects hard links, streams SHA-256 and PNG parsing with bounded memory, and verifies the PNG signature, chunk names and ordering, chunk boundaries and CRCs, the exact 13-byte first IHDR, optional RGB/RGBA palette placement and size, non-interlaced 8-bit RGB/RGBA policy, zlib completion, scanline sizes/filter bytes, IEND/trailing bytes, animation chunks, and dimensions. The manifest file is flushed and the staging directory is synchronized before publication. The already-closed staged PNG is not explicitly file-flushed, so the guarantee is atomic visibility rather than full power-loss durability. Every reopened entry is reverified; post-crash damage is treated as corruption and uses the exact trusted-identity invalidation path rather than being served.
+
+Windows publication calls `MoveFileExW` with `MOVEFILE_WRITE_THROUGH` and without `MOVEFILE_REPLACE_EXISTING`. Linux calls `renameat2(..., RENAME_NOREPLACE)`. Both move the complete staging directory atomically within one cache root and never overwrite an entry. `EEXIST`/the equivalent Windows collision result is accepted only after a complete verified lookup of the existing identity; corrupt or mismatched collision material fails closed. A platform without one of these verified primitives is unsupported rather than receiving an `os.rename()` fallback. Failure before the move leaves only request-owned staging for exact cleanup; failure after the move leaves a complete verifiable entry and reports path-safe `PREVIEW_INTERNAL_ERROR`.
+
+### 20.3 Corruption recovery, cleanup, and eviction
+
+Lookup verifies root and lock identity, the exact two-file directory shape, containment, non-reparse regular files, single-link ownership, canonical strict manifest, descriptor/cache-key equality, artifact size/SHA-256, and streamed PNG encoding/dimensions before returning a pinned handle. Failures map to `PREVIEW_CACHE_CORRUPT` without filesystem or operating-system details. A safely recognized persisted entry whose content is corrupt does not prevent store construction: it remains unserved, non-evictable, entry-count-consuming, and byte-capacity-consuming until a trusted identity selects it. Unsafe directory ownership or unaccountable material still fails closed. `discard_corrupt(identity)` refuses to remove a valid entry or a pinned entry and removes only the exact invalid key selected by a trusted identity. This is storage support for the approved single safe invalidation/regeneration attempt; the one-attempt counter and regeneration belong to Phase 3C-3.
+
+Deletion first atomically quarantines an exact entry back beneath the private staging root, then removes only recognized regular files whose identities remain stable. Abandoned staging recovery recognizes only adapter-generated directory names and known output/manifest/Phase 2 partial filenames. Unknown files, directories, symlinks, reparse targets, and ambiguous shapes are preserved and fail closed; there is no recursive broad deletion and no chmod that could mutate unrelated hard-linked content.
+
+Capacity defaults remain the approved 2 GiB and 2,000 entries, with no TTL. Logical artifact plus manifest bytes and entry count are enforced before a new publication. Safely inspectable regular files in a corrupt entry are included in its logical byte charge, but the entry cannot be evicted without trusted exact invalidation. Construction remains available for recovery even when retained corruption alone exceeds a configured limit; explicit enforcement and new publication continue to fail with `PREVIEW_CAPACITY_EXHAUSTED` until recovery. Verified candidates sort deterministically by entry-directory modification time and then preview ID. Eviction skips pinned entries, never deletes unknown or unverified targets, and returns `PREVIEW_CAPACITY_EXHAUSTED` when limits cannot be satisfied. A collision is resolved before admission-space eviction, so an existing legitimate winner is never evicted merely to publish equivalent staged bytes.
+
+### 20.4 Security scope and limitations
+
+The adapter preserves the Phase 3B cooperative same-user threat model. Root/lock identity revalidation, local-filesystem classification, handle-based no-follow file reads, Win32 reparse inspection, hard-link rejection, exact-shape cleanup, and atomic no-replace moves close ordinary traversal, substitution, partial-publication, and read/eviction races. Artifact leases prevent adapter-driven eviction while a consumer streams an already-open file; staging leases retain root ownership while a writer remains active. On POSIX, an external same-user unlink would not change bytes visible through an already-open artifact descriptor.
+
+This is not a defense against administrators, kernel compromise, hostile mount namespaces, denial of service by a same-user process continuously racing managed paths, or privileged filesystem remounts. Atomic publication does not claim full power-loss durability. The logical byte limit does not include filesystem allocation metadata or active request-owned staging; Phase 3C-2/3C-3 must bound admitted active work and always close staging leases. Windows cannot create symbolic links in this local user context, so its symbolic-link test remains an explicit privilege skip; real Windows junction and hard-link cases execute. A live cache-root replacement test is POSIX-only; Windows retains deterministic identity fault injection because an open locked root cannot be replaced safely in this test context. Native Linux publication, cache-root locality, symlink handling, live root replacement, and `renameat2` require the updated WU3 workflow to run after these uncommitted changes are eventually pushed.
+
+### 20.5 Validation evidence
+
+Validation used Windows 11, CPython 3.12.3, the existing repository `.venv`, existing dependencies only, and the explicit approved Gyan FFmpeg/FFprobe 9.0.2 paths for the complete backend run.
+
+- Targeted Phase 3C-1 security-repair regressions: **13 passed, 1 skipped**. The skip is the live POSIX cache-root replacement case on Windows.
+- Phase 3C-1 storage unit, import-boundary, and real-filesystem integration tests: **49 passed, 2 skipped**. The skips are Windows symbolic-link creation without the required privilege and the POSIX-only live root-replacement case; Windows junction and hard-link cases passed.
+- Phase 3A cache-identity unit regression: **97 passed**, including fixed digest `7c2eadb17a2cfab9ed55570d6e68f72ee848b26d29af8307045df02cd60e84b3`.
+- Complete contract suite: **178 passed**.
+- Complete unit suite: **374 passed, 3 skipped**.
+- Complete backend suite with real WU2/WU3 FFmpeg integrations: **636 passed, 9 skipped**. The skips are four accepted Phase 3B Windows symbolic-link cases, one Phase 3C-1 Windows symbolic-link case, one Phase 3C-1 POSIX live root-replacement case, one POSIX process-group case, and two established WU2 Windows directory-symlink cases.
+- Python compilation of `backend/src` and `backend/tests`: passed.
+- `git diff --check` and whitespace inspection of tracked and untracked Phase 3C-1 files: passed.
+
+The dedicated WU3 workflow now runs the Phase 3C-1 storage unit and filesystem modules explicitly on Ubuntu/Python 3.11, Ubuntu/Python 3.12, and Windows/Python 3.12 in addition to the complete 3.12 regressions. That workflow change is locally validated but cannot execute against this uncommitted working tree. Live Ubuntu verification of `renameat2(RENAME_NOREPLACE)`, native symlink cases, local-filesystem classification, and Linux cleanup/eviction behavior therefore remains the Phase 3C-1 acceptance gate after an approved commit and push.

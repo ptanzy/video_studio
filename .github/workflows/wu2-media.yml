@@ -35,13 +35,91 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - if: runner.os == 'Linux'
+      - name: Provision BtbN FFmpeg 9.0.2 release-branch build (Ubuntu)
+        if: runner.os == 'Linux'
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          set -euo pipefail
+          archive="$RUNNER_TEMP/ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0.tar.xz"
+          destination="$RUNNER_TEMP/wrld-ffmpeg-n9.0.2-17"
+          uri="https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0.tar.xz"
+          expected="68ee646831adaae2495618346f3bba94ff207ff83bbd34d643e7004730d66269"
+
+          curl --fail --location --retry 3 --output "$archive" "$uri"
+          echo "$expected  $archive" | sha256sum --check --strict
+          mkdir -p "$destination"
+          tar -xJf "$archive" -C "$destination"
+
+          mapfile -t ffmpeg_matches < <(find "$destination" -type f -name ffmpeg -print)
+          mapfile -t ffprobe_matches < <(find "$destination" -type f -name ffprobe -print)
+          if [[ ${#ffmpeg_matches[@]} -ne 1 || ${#ffprobe_matches[@]} -ne 1 ]]; then
+            echo "Expected exactly one ffmpeg and one ffprobe in the verified archive" >&2
+            exit 1
+          fi
+          chmod +x "${ffmpeg_matches[0]}" "${ffprobe_matches[0]}"
+
+          echo "WRLD_FFMPEG_PATH=$(realpath "${ffmpeg_matches[0]}")" >> "$GITHUB_ENV"
+          echo "WRLD_FFPROBE_PATH=$(realpath "${ffprobe_matches[0]}")" >> "$GITHUB_ENV"
+          echo "Linux FFmpeg archive SHA-256: $expected" >> "$GITHUB_STEP_SUMMARY"
       - if: runner.os == 'Windows'
         run: choco install ffmpeg --yes --no-progress
       - run: python -m pip install -e ".[test]"
-      - run: ffmpeg -version
-      - run: ffprobe -version
+      - name: Verify FFmpeg and FFprobe capabilities
+        shell: python
+        run: |
+          import os
+          import pathlib
+          import shutil
+          import subprocess
+
+          def resolve(variable: str, executable: str) -> pathlib.Path:
+              configured = os.environ.get(variable)
+              candidate = configured or shutil.which(executable)
+              if candidate is None:
+                  raise SystemExit(f"{executable} was not configured and is not on PATH")
+              path = pathlib.Path(candidate)
+              if not path.is_file():
+                  raise SystemExit(f"Configured {executable} does not exist: {path!s}")
+              return path
+
+          ffmpeg = resolve("WRLD_FFMPEG_PATH", "ffmpeg")
+          ffprobe = resolve("WRLD_FFPROBE_PATH", "ffprobe")
+          subprocess.run([str(ffmpeg), "-hide_banner", "-version"], check=True)
+          subprocess.run([str(ffprobe), "-hide_banner", "-version"], check=True)
+
+          def available(flag: str) -> set[str]:
+              result = subprocess.run(
+                  [str(ffmpeg), "-hide_banner", flag],
+                  check=True,
+                  capture_output=True,
+                  text=True,
+                  errors="replace",
+              )
+              return {
+                  parts[1]
+                  for line in result.stdout.splitlines()
+                  if len(parts := line.split()) >= 2
+              }
+
+          requirements = {
+              "filters": (
+                  "-filters",
+                  {"alphaextract", "alphamerge", "color", "format", "geq", "hflip", "scale", "split", "transpose", "vflip", "zscale"},
+              ),
+              "encoders": (
+                  "-encoders",
+                  {"aac", "libx264", "libwebp", "libwebp_anim", "mjpeg", "png"},
+              ),
+              "decoders": (
+                  "-decoders",
+                  {"aac", "h264", "mjpeg", "pcm_s16le", "png", "webp", "webp_anim"},
+              ),
+          }
+          for label, (flag, required) in requirements.items():
+              present = available(flag)
+              missing = sorted(required - present)
+              print(f"Required {label}: {', '.join(sorted(required))}")
+              print(f"Verified {label}: {', '.join(sorted(required & present))}")
+              if missing:
+                  raise SystemExit(f"Missing required FFmpeg {label}: {', '.join(missing)}")
       - run: python -m pytest backend/tests -m integration_ffmpeg -q

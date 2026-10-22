@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from wrld_video_studio.application.media_jobs import MediaJobs, RenderWorker
+from wrld_video_studio.application.render_coordination import ProcessLocalRenderAdmission
 from wrld_video_studio.domain.jobs import JobState, MediaProbe, MediaStream
 from wrld_video_studio.domain.media_errors import (
     IndeterminateMediaCommitError,
@@ -86,7 +87,15 @@ class FakeVerifier:
         )
 
 
-def setup(tmp_path, schema_dir, *, encoder=None, verifier=None, repository=None):
+def setup(
+    tmp_path,
+    schema_dir,
+    *,
+    encoder=None,
+    verifier=None,
+    repository=None,
+    admission=None,
+):
     source_root = tmp_path / "sources"
     source_root.mkdir(exist_ok=True)
     (source_root / "input.dat").write_bytes(b"stable source")
@@ -103,6 +112,7 @@ def setup(tmp_path, schema_dir, *, encoder=None, verifier=None, repository=None)
         verifier or FakeVerifier(),
         artifacts,
         source_root,
+        admission=admission or ProcessLocalRenderAdmission(),
     )
     jobs = MediaJobs(repository)
     return source_root, repository, artifacts, worker, jobs
@@ -128,6 +138,40 @@ def test_worker_cancel_request_waits_for_owned_encoder_to_acknowledge(tmp_path, 
     assert not (tmp_path / "output" / "proof" / "fake.mp4").exists()
 
 
+def test_worker_cancel_request_while_waiting_for_shared_admission_never_encodes(
+    tmp_path, schema_dir
+):
+    admission = ProcessLocalRenderAdmission()
+    preview_lease = admission.acquire_preview()
+    encoder = FakeEncoder()
+    source_root, _repository, _artifacts, worker, jobs = setup(
+        tmp_path,
+        schema_dir,
+        encoder=encoder,
+        admission=admission,
+    )
+    snapshot, _ = jobs.submit(make_request(), source_root, "synthetic-proof-1")
+    result_box = []
+    thread = threading.Thread(target=lambda: result_box.append(worker.run_next()))
+    thread.start()
+    deadline = threading.Event()
+    for _ in range(500):
+        if admission.waiting_counts == (1, 0):
+            break
+        deadline.wait(0.01)
+    assert admission.waiting_counts == (1, 0)
+
+    requested = worker.request_cancel(snapshot.job_id, snapshot.attempt_id)
+    thread.join(timeout=10)
+    preview_lease.close()
+
+    assert not thread.is_alive()
+    assert requested.status is JobState.CANCEL_REQUESTED
+    assert result_box[0][1].status is JobState.CANCELLED
+    assert not encoder.started.is_set()
+    assert admission.active_kind is None
+
+
 def test_cancellation_cas_race_during_validating_is_acknowledged(tmp_path, schema_dir):
     source_root, base, artifacts, _worker, jobs = setup(tmp_path, schema_dir)
 
@@ -144,7 +188,8 @@ def test_cancellation_cas_race_during_validating_is_acknowledged(tmp_path, schem
 
     snapshot, _ = jobs.submit(make_request(), source_root, "synthetic-proof-1")
     worker = RenderWorker(
-        CancelAtValidatingWrite(), FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root
+        CancelAtValidatingWrite(), FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
 
     result = worker.run_next()
@@ -167,7 +212,8 @@ def test_cancel_from_separate_worker_before_publication_prevents_promotion(tmp_p
     source_root, repository, artifacts, _worker, jobs = setup(tmp_path, schema_dir)
     snapshot, _ = jobs.submit(make_request(), source_root, "synthetic-proof-1")
     worker = RenderWorker(
-        repository, FakeProber(), FakeEncoder(), BlockingVerifier(), artifacts, source_root
+        repository, FakeProber(), FakeEncoder(), BlockingVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
     result_box = []
     worker_thread = threading.Thread(target=lambda: result_box.append(worker.run_next()))
@@ -175,7 +221,8 @@ def test_cancel_from_separate_worker_before_publication_prevents_promotion(tmp_p
     assert verifying.wait(timeout=5)
 
     cancelling_worker = RenderWorker(
-        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root
+        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
     requested = cancelling_worker.request_cancel(snapshot.job_id, snapshot.attempt_id)
     continue_verification.set()
@@ -204,7 +251,8 @@ def test_cancel_from_separate_worker_waits_for_committed_promotion(tmp_path, sch
     artifacts = BlockingArtifacts(tmp_path / "output")
     snapshot, _ = jobs.submit(make_request(), source_root, "synthetic-proof-1")
     worker = RenderWorker(
-        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root
+        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
     result_box = []
     worker_thread = threading.Thread(target=lambda: result_box.append(worker.run_next()))
@@ -212,7 +260,8 @@ def test_cancel_from_separate_worker_waits_for_committed_promotion(tmp_path, sch
     assert promoting.wait(timeout=5)
 
     cancelling_worker = RenderWorker(
-        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root
+        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
 
     def cancel():
@@ -291,6 +340,7 @@ def test_source_change_during_output_verification_prevents_promotion(tmp_path, s
         MutatingVerifier(),
         artifacts,
         source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
 
     result = worker.run_next()
@@ -326,7 +376,8 @@ def test_restart_completes_cancel_requested_attempt_with_receipted_promotion(tmp
     staged.write_bytes(b"verified fake artifact")
     final = artifacts.promote(staged, "proof/fake.mp4")
     cancel_worker = RenderWorker(
-        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root
+        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
     requested = cancel_worker.request_cancel(snapshot.job_id, snapshot.attempt_id)
 
@@ -346,7 +397,8 @@ def test_restart_fails_cancel_requested_attempt_with_unreceipted_final(tmp_path,
     final.parent.mkdir(parents=True, exist_ok=True)
     final.write_bytes(b"verified fake artifact")
     cancel_worker = RenderWorker(
-        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root
+        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
     cancel_worker.request_cancel(snapshot.job_id, snapshot.attempt_id)
 
@@ -409,13 +461,19 @@ def test_reconcile_is_rejected_while_worker_is_active(tmp_path, schema_dir):
         tmp_path, schema_dir, encoder=FakeEncoder(started, wait_for_cancel=True)
     )
     snapshot, _ = jobs.submit(make_request(), source_root, "synthetic-proof-1")
-    worker = RenderWorker(repository, FakeProber(), FakeEncoder(started, wait_for_cancel=True), FakeVerifier(), artifacts, source_root)
+    worker = RenderWorker(
+        repository, FakeProber(), FakeEncoder(started, wait_for_cancel=True), FakeVerifier(), artifacts,
+        source_root, admission=ProcessLocalRenderAdmission()
+    )
     worker_thread = threading.Thread(target=worker.run_next)
     worker_thread.start()
     assert started.wait(timeout=5)
 
     with pytest.raises(MediaInfrastructureError) as caught:
-        RenderWorker(repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root).reconcile()
+        RenderWorker(
+            repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+            admission=ProcessLocalRenderAdmission(),
+        ).reconcile()
     assert caught.value.code == "WORKER_ALREADY_ACTIVE"
     worker.request_cancel(snapshot.job_id, snapshot.attempt_id)
     worker_thread.join(timeout=10)
@@ -461,6 +519,7 @@ def test_post_promotion_status_failure_is_indeterminate_then_reconciled(tmp_path
         verifier=FakeVerifier(),
         artifacts=artifacts,
         source_root=source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
     with pytest.raises(IndeterminateMediaCommitError):
         interrupted_worker.run_next()
@@ -489,7 +548,8 @@ def test_pre_replace_completion_write_failure_after_promotion_is_indeterminate(t
             return repository.update_status(status, expected_revision)
 
     worker = RenderWorker(
-        FailCompletionBeforeReplace(), FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root
+        FailCompletionBeforeReplace(), FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     )
     with pytest.raises(IndeterminateMediaCommitError):
         worker.run_next()
@@ -498,7 +558,8 @@ def test_pre_replace_completion_write_failure_after_promotion_is_indeterminate(t
     assert repository.get_attempt(snapshot.job_id, snapshot.attempt_id)[1].status is JobState.VALIDATING
 
     recovered = RenderWorker(
-        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root
+        repository, FakeProber(), FakeEncoder(), FakeVerifier(), artifacts, source_root,
+        admission=ProcessLocalRenderAdmission(),
     ).reconcile()
     assert recovered[0][1].status is JobState.COMPLETED
     assert final.is_file()

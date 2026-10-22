@@ -20,6 +20,10 @@ from wrld_video_studio.application.ports.media import (
     MediaProber,
     SyntheticEncoder,
 )
+from wrld_video_studio.application.ports.render_coordination import (
+    RenderAdmissionCancelled,
+    RenderAdmissionCoordinator,
+)
 from wrld_video_studio.domain.jobs import (
     InputFingerprint,
     JobEvent,
@@ -160,6 +164,7 @@ class RenderWorker:
         artifacts: ArtifactStore,
         source_root: str | Path,
         *,
+        admission: RenderAdmissionCoordinator,
         event_sink: JobEventSink | None = None,
         clock: Clock | None = None,
     ) -> None:
@@ -169,6 +174,7 @@ class RenderWorker:
         self.verifier = verifier
         self.artifacts = artifacts
         self.source_root = Path(source_root).resolve()
+        self.admission = admission
         self.event_sink = event_sink
         self.clock = clock or SystemClock()
         self._lock = threading.Lock()
@@ -190,16 +196,30 @@ class RenderWorker:
                 snapshot, running = claimed
                 token = threading.Event()
                 identity = (snapshot.job_id, snapshot.attempt_id)
-                self._cancel_events[identity] = token
+                with self._control_lock:
+                    self._cancel_events[identity] = token
+                    try:
+                        if self._current_status(snapshot).status is JobState.CANCEL_REQUESTED:
+                            token.set()
+                    except BaseException:
+                        self._cancel_events.pop(identity, None)
+                        raise
                 started = time.monotonic()
                 self._emit(snapshot, "worker", "started", started)
                 try:
-                    return self._execute(snapshot, running, token, started)
+                    try:
+                        with self.admission.acquire_wu2(token):
+                            if token.is_set():
+                                return snapshot, self._finish_cancelled(snapshot, started)
+                            return self._execute(snapshot, running, token, started)
+                    except RenderAdmissionCancelled:
+                        return snapshot, self._finish_cancelled(snapshot, started)
                 except IndeterminateMediaCommitError:
                     self._startup_reconciled = False
                     raise
                 finally:
-                    self._cancel_events.pop(identity, None)
+                    with self._control_lock:
+                        self._cancel_events.pop(identity, None)
         finally:
             self._lock.release()
 

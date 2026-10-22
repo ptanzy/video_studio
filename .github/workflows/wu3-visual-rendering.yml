@@ -172,9 +172,10 @@ jobs:
         if: matrix.full_regression
         run: python -m pytest backend/tests/unit -q -ra --tb=long
 
-      - name: Run WU3 preview-cache storage tests
+      - name: Run WU3 coordination and preview-cache storage tests
         run: >-
           python -m pytest
+          backend/tests/unit/test_render_coordination.py
           backend/tests/unit/test_preview_cache_storage.py
           backend/tests/integration/test_preview_cache_filesystem.py
           -vv -rs --tb=long

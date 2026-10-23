@@ -28,3 +28,24 @@ Separate creative/analysis/editor/generated records; explicit adapter and identi
 
 ## v1.7 implementation guardrails
 Read root `AGENTS.md` and `docs/copilot/31_SPEC_AUTHORITY_AND_DECISION_REGISTER.md` first. New docs 27–30 define UI validation/comparison, ingestion identity/schema authority, mocks/tests and heartbeat behavior. The POC is local, single worker, React/FastAPI; never invent undefined product decisions.
+
+## WU3 backend preview API
+
+WU3 provides the programmatic FastAPI composition boundary for
+`POST /api/v1/previews/still`. The endpoint accepts the strict
+`preview-request-v1` JSON contract and returns `multipart/related` containing
+the exact `preview-result-v1` JSON followed by the authoritative `image/png`.
+It never accepts or returns local source, snapshot, cache, or executable paths.
+
+Construct `PreviewApplicationConfig` with absolute server-owned artwork,
+snapshot, cache, FFmpeg, and FFprobe locations; immutable artwork and Auto-color
+registrations; and explicit preview/render/shutdown timeouts. Pass it to
+`wrld_video_studio.interfaces.http.create_app`. The provided `serve(config,
+port=...)` entry point always binds to `127.0.0.1`; there is no public bind,
+CORS, authentication, or administration endpoint in WU3.
+
+The runtime must be application-scoped so its source registry, secure cache,
+single-flight coordinator, and process-local render admission have one lifespan.
+Create WU2 workers through `PreviewApplicationRuntime.build_render_worker()` to
+inject that same admission instance. The React Original/Split/Treated review
+interface remains a WU4 deliverable; WU3 completion is backend-only.

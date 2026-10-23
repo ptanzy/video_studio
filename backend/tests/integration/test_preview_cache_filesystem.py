@@ -81,6 +81,46 @@ def test_valid_publication_lookup_and_explicit_pinned_lease(tmp_path):
             assert hit.read() == _png()
 
 
+def test_cancellation_during_publication_validation_prevents_atomic_publish(tmp_path):
+    root = tmp_path / "cache"
+    root.mkdir()
+    entered = threading.Event()
+    release = threading.Event()
+
+    def hook(stage):
+        if stage == "before_publish":
+            entered.set()
+            assert release.wait(timeout=5)
+
+    identity = _identity()
+    cache = SecureFilesystemPreviewCache(root, _event_hook=hook)
+    staging = cache.begin_write(identity)
+    staging.output_path.write_bytes(_png())
+    cancel = threading.Event()
+    failure = []
+
+    def publish():
+        try:
+            staging.publish(width=3, height=2, cancel_event=cancel)
+        except BaseException as error:
+            failure.append(error)
+
+    worker = threading.Thread(target=publish)
+    worker.start()
+    assert entered.wait(timeout=5)
+    cancel.set()
+    release.set()
+    worker.join(timeout=5)
+
+    assert not worker.is_alive()
+    assert len(failure) == 1
+    assert isinstance(failure[0], PreviewCacheError)
+    assert failure[0].code == "PREVIEW_CANCELLED"
+    assert cache.lookup(identity) is None
+    staging.close()
+    cache.close()
+
+
 @pytest.mark.parametrize(
     "change",
     [

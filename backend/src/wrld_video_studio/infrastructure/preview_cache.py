@@ -420,6 +420,7 @@ class SecureFilesystemPreviewCache(PreviewCacheStore):
             try:
                 _fsync_directory(staging)
                 self._call_hook("before_publish")
+                _raise_if_cancelled(cancel_event)
             except PreviewCacheError:
                 raise
             except OSError as error:
@@ -436,6 +437,7 @@ class SecureFilesystemPreviewCache(PreviewCacheStore):
                     )
                 return collision, False
             self._make_room(artifact_size + len(manifest_bytes), 1)
+            _raise_if_cancelled(cancel_event)
             try:
                 published = _atomic_directory_publish_no_replace(staging, destination)
             except (OSError, RuntimeError) as error:

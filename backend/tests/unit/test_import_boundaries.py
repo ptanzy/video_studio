@@ -47,3 +47,15 @@ def test_render_coordination_port_and_use_case_do_not_depend_on_adapters():
         source = (source_root / relative_path).read_text(encoding="utf-8")
         assert "wrld_video_studio.infrastructure" not in source
         assert "subprocess" not in source
+
+
+def test_preview_service_and_render_ports_do_not_depend_on_adapters():
+    source_root = Path(__file__).resolve().parents[2] / "src" / "wrld_video_studio"
+    for relative_path in (
+        Path("application/ports/still_images.py"),
+        Path("application/ports/render_coordination.py"),
+        Path("application/preview_service.py"),
+    ):
+        source = (source_root / relative_path).read_text(encoding="utf-8")
+        assert "wrld_video_studio.infrastructure" not in source
+        assert "subprocess" not in source

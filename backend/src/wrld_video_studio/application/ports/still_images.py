@@ -5,6 +5,10 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from wrld_video_studio.domain.color_resolution import ColorResolution
+from wrld_video_studio.domain.preview_cache import (
+    PREVIEW_ERROR_CODES,
+    PreviewToolchainIdentity,
+)
 
 
 STILL_RENDER_REQUEST_VERSION = "still-render-request-v1"
@@ -72,4 +76,31 @@ class StillRenderResult:
 class StillImageRenderer(Protocol):
     def render(
         self, request: StillRenderRequest, cancel_event: Any = None
+    ) -> StillRenderResult: ...
+
+
+class PreviewRenderError(RuntimeError):
+    """Path-safe preview-facing failure raised by the render boundary."""
+
+    def __init__(self, code: str, message: str) -> None:
+        if code not in PREVIEW_ERROR_CODES:
+            raise ValueError("Preview render errors must use an approved preview error code.")
+        self.code = code
+        self.message = message
+        super().__init__(message)
+
+
+class PreviewRenderBackend(Protocol):
+    """Bind cache identity to the exact tools used for Phase 2 rendering."""
+
+    def identify(self, cancel_event: Any = None) -> PreviewToolchainIdentity: ...
+
+    def render(
+        self,
+        *,
+        source_path: Path,
+        output_path: Path,
+        resolution: ColorResolution,
+        expected_toolchain: PreviewToolchainIdentity,
+        cancel_event: Any = None,
     ) -> StillRenderResult: ...

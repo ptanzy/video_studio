@@ -7,6 +7,7 @@ from wrld_video_studio.application.render_coordination import (
     PreviewCoordinationError,
     PreviewSingleFlightCoordinator,
     ProcessLocalRenderAdmission,
+    _FlightCancellation,
 )
 from wrld_video_studio.domain.color_resolution import (
     INPUT_CONTRACT_VERSION,
@@ -108,6 +109,33 @@ class GatedCancelSignal:
         self._cancelled.set()
 
 
+class ControlledEarlyWakeEvent:
+    """Return early once, then expose when the corrected wait blocks again."""
+
+    def __init__(self):
+        self._event = threading.Event()
+        self._guard = threading.Lock()
+        self.wait_calls = 0
+        self.first_wait_returned = threading.Event()
+        self.blocking_wait_entered = threading.Event()
+
+    def is_set(self):
+        return self._event.is_set()
+
+    def set(self):
+        self._event.set()
+
+    def wait(self, timeout=None):
+        with self._guard:
+            self.wait_calls += 1
+            first = self.wait_calls == 1
+        if first:
+            self.first_wait_returned.set()
+            return False
+        self.blocking_wait_entered.set()
+        return self._event.wait(timeout)
+
+
 class BlockingCloseOperation(FakeOperation):
     def __init__(self):
         super().__init__()
@@ -168,6 +196,81 @@ def _wait_until(predicate, timeout=5):
             return
         threading.Event().wait(0.01)
     raise AssertionError("condition was not reached")
+
+
+def test_flight_cancellation_wait_ignores_early_wakeup_until_explicit_set():
+    signal = _FlightCancellation(time.monotonic() + 5)
+    event = ControlledEarlyWakeEvent()
+    signal._event = event
+    results = []
+
+    waiter = threading.Thread(target=lambda: results.append(signal.wait()))
+    waiter.start()
+    assert event.first_wait_returned.wait(timeout=5)
+    assert event.blocking_wait_entered.wait(timeout=5)
+    assert waiter.is_alive()
+
+    signal.set()
+    waiter.join(timeout=5)
+
+    assert not waiter.is_alive()
+    assert results == [True]
+    assert event.wait_calls >= 2
+
+
+def test_flight_cancellation_wait_ignores_early_wakeup_until_caller_timeout():
+    signal = _FlightCancellation(time.monotonic() + 5)
+    event = ControlledEarlyWakeEvent()
+    signal._event = event
+
+    assert signal.wait(timeout=0.05) is False
+    assert event.first_wait_returned.is_set()
+    assert event.wait_calls >= 2
+
+
+@pytest.mark.parametrize("timeout", [None, 1.0])
+def test_flight_cancellation_wait_reaches_deadline_without_explicit_set(timeout):
+    signal = _FlightCancellation(time.monotonic() + 0.05)
+    event = ControlledEarlyWakeEvent()
+    signal._event = event
+
+    assert signal.wait(timeout=timeout) is True
+    assert event.first_wait_returned.is_set()
+    assert event.wait_calls >= 2
+    assert event.is_set() is False
+
+
+def test_flight_cancellation_zero_and_negative_timeouts_are_immediate_polls():
+    signal = _FlightCancellation(time.monotonic() + 5)
+    event = ControlledEarlyWakeEvent()
+    signal._event = event
+
+    assert signal.wait(timeout=0) is False
+    assert signal.wait(timeout=-1) is False
+    assert event.wait_calls == 0
+
+    signal.set()
+    assert signal.wait(timeout=0) is True
+    expired = _FlightCancellation(time.monotonic() - 1)
+    assert expired.wait(timeout=0) is True
+
+
+def test_flight_cancellation_explicit_set_wakes_multiple_waiters():
+    signal = _FlightCancellation(time.monotonic() + 5)
+    results = []
+    waiters = [
+        threading.Thread(target=lambda: results.append(signal.wait())) for _ in range(4)
+    ]
+    for waiter in waiters:
+        waiter.start()
+    _wait_until(lambda: all(waiter.is_alive() for waiter in waiters))
+
+    signal.set()
+    for waiter in waiters:
+        waiter.join(timeout=5)
+
+    assert all(not waiter.is_alive() for waiter in waiters)
+    assert results == [True] * 4
 
 
 def test_same_key_shares_one_operation_and_closes_unused_operation_once():

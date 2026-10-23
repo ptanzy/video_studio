@@ -2,6 +2,19 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from wrld_video_studio.domain.preview_cache import PREVIEW_ERROR_CODES, PreviewCacheIdentity
+
+
+class PreviewCoordinationError(RuntimeError):
+    """Path-safe preview-facing failure raised by coordination."""
+
+    def __init__(self, code: str, message: str) -> None:
+        if code not in PREVIEW_ERROR_CODES:
+            raise ValueError("Preview coordination errors must use an approved preview error code.")
+        self.code = code
+        self.message = message
+        super().__init__(message)
+
 
 class RenderAdmissionCancelled(RuntimeError):
     """A caller cancelled before acquiring process-local render admission."""
@@ -29,3 +42,14 @@ class PreviewFlightOperation(Protocol):
     def run(self, cancel_event: Any = None) -> None: ...
 
     def close(self) -> None: ...
+
+
+class PreviewFlightCoordinator(Protocol):
+    """Coordinate one published artifact per trusted pixel identity."""
+
+    def coordinate(
+        self,
+        identity: PreviewCacheIdentity,
+        operation: PreviewFlightOperation,
+        cancel_event: Any = None,
+    ) -> None: ...

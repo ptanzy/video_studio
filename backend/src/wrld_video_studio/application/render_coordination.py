@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from wrld_video_studio.application.ports.render_coordination import (
+    PreviewCoordinationError,
     PreviewFlightOperation,
     RenderAdmissionCancelled,
     RenderAdmissionCoordinator,
@@ -15,23 +16,11 @@ from wrld_video_studio.application.ports.render_coordination import (
 )
 from wrld_video_studio.domain.preview_cache import (
     DEFAULT_PREVIEW_MAX_WAITING_REQUESTS,
-    PREVIEW_ERROR_CODES,
     PreviewCacheIdentity,
 )
 
 
 _WAIT_POLL_SECONDS = 0.05
-
-
-class PreviewCoordinationError(RuntimeError):
-    """Path-safe preview-facing failure raised by coordination."""
-
-    def __init__(self, code: str, message: str) -> None:
-        if code not in PREVIEW_ERROR_CODES:
-            raise ValueError("Preview coordination errors must use an approved preview error code.")
-        self.code = code
-        self.message = message
-        super().__init__(message)
 
 
 @dataclass(slots=True)
@@ -144,13 +133,44 @@ class _FlightCaller:
     failure: _FlightFailure | None = None
 
 
+class _FlightCancellation:
+    """Event-compatible cancellation that also becomes set at the fixed deadline."""
+
+    def __init__(self, deadline: float) -> None:
+        self._deadline = deadline
+        self._event = threading.Event()
+
+    def is_set(self) -> bool:
+        return self._event.is_set() or time.monotonic() >= self._deadline
+
+    def set(self) -> None:
+        self._event.set()
+
+    def wait(self, timeout: float | None = None) -> bool:
+        caller_deadline = (
+            None if timeout is None else time.monotonic() + max(0.0, timeout)
+        )
+        while True:
+            if self._event.is_set():
+                return True
+            now = time.monotonic()
+            if now >= self._deadline:
+                return True
+            if caller_deadline is not None and now >= caller_deadline:
+                return False
+            remaining = self._deadline - now
+            if caller_deadline is not None:
+                remaining = min(remaining, caller_deadline - now)
+            self._event.wait(timeout=max(0.0, remaining))
+
+
 @dataclass(slots=True)
 class _PreviewFlight:
     key: str
     operation: PreviewFlightOperation
     deadline: float
     sequence: int
-    cancel_event: threading.Event = field(default_factory=threading.Event)
+    cancel_event: _FlightCancellation
     callers: deque[_FlightCaller] = field(default_factory=deque)
     sponsor: _FlightCaller | None = None
     state: str = "queued"
@@ -231,11 +251,13 @@ class PreviewSingleFlightCoordinator:
                 self._waiting_callers += 1
                 if flight is None:
                     adopted = True
+                    deadline = now + self._wait_timeout_seconds
                     flight = _PreviewFlight(
                         key=identity.preview_id,
                         operation=operation,
-                        deadline=now + self._wait_timeout_seconds,
+                        deadline=deadline,
                         sequence=self._next_sequence,
+                        cancel_event=_FlightCancellation(deadline),
                     )
                     flight.callers.append(caller)
                     self._flights[flight.key] = flight
@@ -390,9 +412,15 @@ class PreviewSingleFlightCoordinator:
                 operation_completed_at = time.monotonic()
         except RenderAdmissionCancelled as error:
             if self._attached_callers(flight):
-                failure = _FlightFailure("PREVIEW_CANCELLED", "Preview rendering was cancelled.", error)
+                if time.monotonic() >= flight.deadline:
+                    failure = _FlightFailure("PREVIEW_TIMEOUT", "Preview request timed out.", error)
+                else:
+                    failure = _FlightFailure("PREVIEW_CANCELLED", "Preview rendering was cancelled.", error)
         except PreviewCoordinationError as error:
-            failure = _FlightFailure(error.code, error.message, error)
+            if error.code == "PREVIEW_CANCELLED" and time.monotonic() >= flight.deadline:
+                failure = _FlightFailure("PREVIEW_TIMEOUT", "Preview request timed out.", error)
+            else:
+                failure = _FlightFailure(error.code, error.message, error)
         except Exception as error:
             failure = _FlightFailure(
                 "PREVIEW_INTERNAL_ERROR", "Preview rendering failed unexpectedly.", error

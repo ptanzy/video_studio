@@ -2,10 +2,12 @@
 
 # UI, carousel, waveform and preview specification
 
-## Three screens
-**Import:** select existing manifest or create one from chosen WAVs + artwork; display validation errors, ordered list, duration summary, Short counts. No full render.
+## Four-screen target and work-unit ownership
+**Import:** select an existing server-approved album project or use the future initialization workflow to create one beneath a configured/selectable music-library root and channel; then choose/adapt its manifest, WAVs and artwork. Display validation errors, ordered list, duration summary, and Short counts. Do not expose arbitrary server-path entry in the browser and do not make the current drive, username, `WORLD_MUSIC`, `WRLD-FI`, or album name a fixed UI default. No full render.
 
 **Review:** carousel across tracks with a second selector for the current track's Shorts; portrait preview on one side, compact bounded controls on the other. Provide current Short index, add/duplicate/delete Short, apply profile to all Shorts in current track, revert changes, save. Changes persist to overrides atomically.
+
+**Metadata:** inspect and edit compilation and per-Short publishing text, chapter data, validation and approval state as defined by Docs 19 and 26.
 
 **Render:** summary of tracks, Shorts, overrides, missing inputs, estimated outputs, chosen output directory. `Validate` / `Preview` / `Render All` distinct actions; no accidental full render from editing. Show progress, errors, cancellation policy, output links/paths.
 
@@ -13,7 +15,7 @@
 - Use actual track audio, not compilation MP4. Display a downsampled peak waveform and a region representing `[start_seconds,end_seconds]`.
 - Drag body moves window preserving length; drag handles adjusts either edge; keyboard and numeric input allow >=0.1 s precision; keyboard nudges are accessible.
 - `Play Selection` starts at selected start and **stops at end** (including after seek/drag); `Pause`, `Replay`, and time readout. Browser autoplay requires user click. Selecting another track stops current audio and releases prior resources.
-- Region changes are sent to Python only on drag end/debounce, avoiding a Streamlit rerun on every pixel. If the UI framework rerenders, restore playback/selection state appropriately.
+- Region changes are sent to the backend only on drag end/debounce, avoiding a network request on every pixel. React rerenders must preserve playback/selection state appropriately.
 - Add multiple selections per track; IDs stable across saves; selection defaults to 30 s if enough duration; prohibit selection beyond duration; short clips handle gracefully.
 - Preview optional fade-in/out without destructively changing source; final render applies same fades if configured. Audio preview must use the chosen excerpt, not simply seek-and-play without a stop boundary.
 - Later analyzer highlight markers are a future extension; do not require analyzer for POC.
@@ -31,3 +33,6 @@ Import -> validate -> probe -> cache thumbnails/waveform envelopes -> review -> 
 
 ## v1.4 four-screen flow
 Import → Review → **Metadata** → Render. Review adds custom HEX color picker; Metadata provides compilation and per-Short title/description editing, chapter inspection, link-placeholder checks and save/reload. See 18–19 and updated ui-reference HTML.
+
+## v2.0 roadmap allocation
+WU3A delivers headless static album/track MP4 generation and the authoritative audio timeline before frontend work. WU4 implements Import/Review, WU5 implements Metadata and consumes WU3A chapter data, and WU6 implements the Render screen plus integrated job HTTP behavior and remaining Shorts/artifacts. This UI specification does not move those responsibilities back into WU3A.

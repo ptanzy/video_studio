@@ -13,7 +13,7 @@ Publish existing WRLD-FI test recordings quickly. An album typically contains 12
 - Full compilation: 1920x1080, 30 fps, one album image, current title, small audio-reactive bars immediately **left of title**, thin per-track progress bar, very slow continuous zoom/pan and subtle optional grain. Keep compilation color consistent.
 - Shorts: 1080x1920, same artwork with blurred fill and uncropped foreground image by default; track-specific subtle mood color grade; same title/bars/progress. Do not require separately generated images.
 - Previews: instant still at reduced size; optional 3–5-second low-resolution motion preview on demand. Waveform audition plays original track segment in browser; it is not a video render.
-- Exports: `compilation.mp4`, `shorts/*.mp4`, `thumbnail_1280x720.jpg`, `preview_320x180.jpg`, per-Short title/description text, upload manifest CSV, chapters, `render_report.json`.
+- Target exports use the project-local contract: album MP4 under `output/album/`, individual full-track MP4s under `output/tracks/`, later Shorts under `output/shorts/`, and publishing/render artifacts under `output/metadata/`. WU3A owns album/track MP4s, chapters and render report; WU5 owns approved publishing content; WU6 owns Shorts; upload state remains future work. See Doc 38 Section 6.1.
 
 ## Non-goals
 No DAW, audio mastering, multi-track video timeline, arbitrary compositing, generative AI, cloud upload, direct YouTube auth, auto-posting, batch album rendering, track reordering in editor, full story scene generation, A/B version handling, or advanced color grading.
@@ -24,6 +24,10 @@ No DAW, audio mastering, multi-track video timeline, arbitrary compositing, gene
 - UI previews and final renders use identical resolved settings and titles, subject to preview quality/resolution differences.
 - Every change is persisted in an override file; user can reopen and reproduce outputs.
 - Source files never modified; render failures are reported and not marked successful.
+
+## Work-unit allocation (v2.0)
+
+WU3A delivers the first headless product video slice before frontend work: an explicit caller-selected album-project directory, validated album/individual-track requests, ordered audio-derived timeline, static-artwork 1920×1080 H.264/AAC MP4 export beneath `<album-project>/output/`, YouTube-compatible chapters, and a supported PowerShell entry point. The current `C:\Users\ptanz\job_search\WORLD_MUSIC\WRLD-FI\Albums\Echoes of Asia - Album 1` path is the real acceptance project, not a fixed application location. Its final gate includes that album render and human playback review. WU4 adds React Import/Review, future album-project initialization beneath configurable library roots, and waveform selection; WU5 adds metadata review/approval/export; WU6 integrates the Render UX, remaining Shorts/artifacts, and release acceptance. Advanced compilation motion/effects and full Shorts composition are not part of WU3A unless separately approved.
 
 
 ## v1.4 additions

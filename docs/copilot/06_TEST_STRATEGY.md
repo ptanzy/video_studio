@@ -1,26 +1,30 @@
 # Test strategy and local setup
 
 ## Requirements and setup (Windows PowerShell)
-- Python 3.11 or newer, FFmpeg **and FFprobe** on PATH; FFmpeg needs libx264, AAC encoder, `subtitles`/libass filter; install Node.js LTS only if implementing custom Wavesurfer component.
+- Python 3.11 or newer and the repository-configured FFmpeg **and FFprobe** executables; FFmpeg needs libx264 and an AAC encoder. The `subtitles`/libass filter is required only by a later approved text-rendering scope. Install Node.js LTS only when implementing the React frontend.
 - From repository root:
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r requirements-dev.txt
+python -m pip install -e ".[test]"
 ffmpeg -version
 ffprobe -version
 ffmpeg -filters | Select-String subtitles
 python -m pytest -q
 ```
-- Define pinned or bounded `requirements.txt` and `requirements-dev.txt` during WU1. Suggested minimal runtime: Streamlit, Pillow, Pydantic, NumPy; `pytest`, `pytest-cov`, `ruff` for dev. Prefer standard library where possible. Do **not** install torch, Demucs, librosa, paid SDKs, cloud clients, or analyzer dependencies for this POC.
-- On macOS/Linux use `python3 -m venv .venv; source .venv/bin/activate; python -m pip install -r requirements-dev.txt`.
+- Use the checked-in backend packaging metadata and lock/constraint policy; do not restore obsolete Streamlit requirements. Prefer standard library where practical. Do **not** install torch, Demucs, librosa, paid SDKs, cloud clients, or analyzer dependencies for this POC.
+- On macOS/Linux use the equivalent virtual-environment activation and `python -m pip install -e '.[test]'`.
 
 ## Test pyramid
 1. **Pure unit tests (fast; no FFmpeg):** manifest parsing/legacy adapter; stable IDs; relative paths; mood precedence/fallback; bounded settings; short region move/resize and clip constraints; timeline offsets; timestamp formatting; ASS escaping; metadata text/CSV; override merge and atomic save; cache key logic.
-2. **FFmpeg integration tests (local/CI when available):** generate synthetic 2–4 s PCM WAV sine tones and PNG image using Python; render a tiny 2–3-track compilation and 1–2 Shorts at test resolution or shortened runtime. Probe streams/durations/dimensions, verify title changes and audio excerpts. Avoid external media downloads.
-3. **UI/component tests:** Streamlit state tests where feasible; Wavesurfer browser/component tests for region drag, resize, play-end boundary, replay, track switch, and state round-trip. Use Playwright only if necessary; browser tests optional in WU1 and required before declaring waveform editor complete.
+2. **FFmpeg integration tests (local/CI when available):** generate synthetic 2–4 s PCM WAV sine tones and a PNG image using Python. WU3A renders tiny album/track static videos; later approved Shorts work adds Short renders. Probe streams/durations/dimensions and audio ordering/content. Avoid external media downloads.
+3. **UI/component tests:** React/WaveSurfer browser/component tests cover region drag, resize, play-end boundary, replay, track switch, and state round-trip. Use Playwright for critical browser flows from WU4 onward.
 4. **Manual smoke test:** Windows with actual WAV and artwork; long title, Unicode, 12 tracks, multiple Shorts, reopen overrides, generate preview, render, review first/last 2 seconds and chapter boundaries.
+
+### WU3A test gate
+
+WU3A adds a required headless video-export tier before browser work: contract/unit tests for the approved manifest/request/result versions, album and track requests, explicit album-project selection, project-relative portability and containment, the approved `output/` tree, normalized sample timeline/chapter formatting, deterministic names, collision/reuse/report-catalog behavior, and metadata ownership; tiny generated multi-track and individual-track real FFmpeg renders; transition-content checks; structural probe; full audio/video decode through EOF; cancellation/recovery/promotion failures; and Windows/Ubuntu media execution. Tests must prove the WU3A application never opens, validates, migrates, writes, or creates `youtube_metadata.json`. Tests must vary project/library/channel-like locations, separate the repository from the album path, and attack traversal/link/reparse escape. CI fixtures remain generated and must not use user music. Final acceptance separately uses the real *Echoes of Asia* album plus at least one full-track export on Windows and requires documented human album playback review; automated tests alone cannot close WU3A. See Doc 38.
 
 ## Required fixtures
 - Tiny WAV fixtures with distinguishable frequencies (e.g. 220 Hz and 440 Hz) to detect wrong-track Short extraction; silence fixture; mono and stereo fixture; short (<30 s) track; one invalid audio file.
@@ -38,7 +42,7 @@ python -m pytest -q
 | T06 | Audio selection play | Starts at selection start; stops at end; replay works |
 | T07 | Mood unknown/ambiguous | `original` profile, no guess |
 | T08 | Override reload | Same visuals and Short times restored |
-| T09 | Rendered compilation | Correct codecs, 16:9 dimensions, chapter ordering |
+| T09 | Rendered compilation | WU3A: correct codecs, 16:9 dimensions, duration, audio order, chapter ordering, and full decode |
 | T10 | Rendered Short | 9:16 dimensions, correct duration, audio stream |
 | T11 | Missing/corrupt file | Clear validation error; no success report |
 | T12 | Unicode/Windows path | Render succeeds with safe text escaping |
@@ -47,9 +51,9 @@ python -m pytest -q
 | T15 | Cancel/failure | Partial output not reported as completed |
 
 ## CI and quality gates
-- GitHub Actions matrix: Windows + Ubuntu, Python 3.11 and 3.12 (if practical). Install FFmpeg from supported OS packages; verify `subtitles` filter. Run `ruff check .`, `pytest -q`, `pytest --cov=wrld_video --cov-report=term-missing`.
+- GitHub Actions matrix: Windows + Ubuntu, Python 3.11 and 3.12 (if practical). Install/configure FFmpeg and FFprobe. Run the repository's documented Ruff, pytest, contract, and coverage commands against `wrld_video_studio`; require `subtitles` only when an approved text-rendering scope uses it.
 - Set initial coverage gate **>=80% for pure core modules** (models/timeline/colors/metadata/overrides); integration and UI coverage separately reported. Do not inflate coverage by excluding untested core paths.
-- For WU1 no UI/browser automation required. From waveform WU onward, include browser tests and a Windows manual verification checklist.
+- For WU1–WU3A no UI/browser automation is required. WU3A instead requires its Windows real-album manual playback checklist. From WU4 waveform work onward, include browser tests and the applicable Windows manual checklist.
 - Tests must not depend on network, Suno, YouTube, paid APIs, GPUs, or source album files. CI can skip FFmpeg integration tests only with explicit documented reason, never silently.
 
 ## v1.1 binding requirements

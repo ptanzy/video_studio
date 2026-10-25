@@ -9,8 +9,8 @@
 - No AI masking/detector evasion features; audio processing is not required for monetization.
 
 ## Risks to address
-1. **Scope creep:** Streamlit UI + custom JS waveform is the largest nontrivial part. Deliver working CLI before UI.
-2. **Streamlit JS integration:** need a reliable bidirectional custom component and region-state synchronization; evaluate available component approach in WU5. Browser playback must obey gesture restrictions.
+1. **Scope creep:** deliver the approved WU3A headless album/track export before React workflow work; do not pull Shorts, animation, or upload into it.
+2. **WaveSurfer integration:** WU4 needs reliable region-state synchronization and browser playback gesture handling; it must consume application services rather than media logic in React.
 3. **Performance:** rendering 45–60 min at 1080p with grain/reactive bars can be slow. Use low-res previews, cache envelopes, and avoid rendering entire videos for each edit.
 4. **FFmpeg portability:** subtitles/libass, Windows path quoting, unicode and filter escaping. Prefer temp files for complex graphs and cross-platform integration tests.
 5. **Precision:** sample-rate conversion, AAC padding and frame boundaries; define tolerances and compare Short audio to known test tones.
@@ -21,10 +21,12 @@
 10. **Hardware:** no GPU requirement. CPU-only FFmpeg is baseline; optional GPU acceleration only after correctness tests.
 
 ## Open decisions (defaults for POC)
-- UI stack: Streamlit + small Wavesurfer custom component (default).
-- Output location: `output/` sibling to manifest, configurable.
+- UI stack is locked: React + TypeScript + Vite + Tailwind + WaveSurfer.js; no Streamlit.
+- WU3A output boundary is locked to `<album-project>/output/`; only approved filenames/subdirectories beneath it remain configurable. Later project initialization may configure/select music-library roots and channels, but may not change an existing project's containment rules implicitly.
 - Excerpt length: default 30 s, user-adjustable within max 180 s; recommend 15–60 s for initial releases.
 - Per-Short color intensity: 0.0–0.3 normalized UI range (implementation must define precise filter semantics).
 - Motion: zoom to 1.04 over clip/compilation, user may disable; keep title anchored.
-- Overwrite: default refuse; explicit confirmation to replace generated files.
+- WU3A collision policy: verify/reuse an identical fingerprint; otherwise refuse with `OUTPUT_EXISTS`. No force-overwrite or confirmation-to-replace path exists in WU3A. Any later replacement workflow requires a separately approved controlled and recoverable policy.
 - Auto color conflicts: deterministic priority documented by implementation, or original if ambiguous.
+
+WU3A's approved resolutions are centralized in Doc 38 Section 15: source/request/result/report schemas; the `youtube-1080p30-v1` profile; contain/black-pad image fit; sample-count timeline, floored chapter text and no MP4 embedding; exact output names/layout/collision/reuse; the headless command; and deferral of title typography. The corrected current *Echoes of Asia* artwork resolves the historical *Lanterns Across Asia* mismatch subject to normal file validation. Do not apply older illustrative defaults instead. WU3A has no publishing-metadata responsibility and must not read any `youtube_metadata.json`.

@@ -5,7 +5,7 @@
 - `render_overrides.json`: editor-only bounded presentation changes and Short edits; atomic write with backup or temp-file + rename. Do not modify canonical WRLD-FI metadata.
 - `render_report.json`: machine-generated observations and outputs; **never** use as user configuration.
 - `schema_version`: mandatory for new format; implement explicit migration/legacy adapter.
-- Paths relative to manifest directory; reject missing/unreadable paths and unsafe output-inside-source overwrites. Do not require a network service.
+- The explicitly selected album directory is the project boundary. Persist artwork, audio, artifact, and publishing references relative to that boundary wherever appropriate; reject missing/unreadable paths, traversal, link/reparse escapes, and unsafe source/output aliasing. Do not require a network service or persist the current machine's library/repository prefix.
 
 ## Proposed example (illustrative; not supported by legacy v2 until implemented)
 ```json
@@ -53,3 +53,9 @@ Color uses discriminated `color_treatment` (auto/preset/custom), not a free-form
 
 ## v1.6 authoritative clarification
 The minimal manifest schema (`contracts/schemas/manifest-v2.schema.json`) and the **rich illustrative metadata contract** (`docs/examples/metadata_contract.example.json`) are different shapes. Do not claim direct schema compatibility; implement an explicit adapter and test it. Source creative album JSON, optional Analyzer sidecar keyed by recording ID, editor overrides, generated publishing drafts, immutable render snapshots, and render reports are distinct. Unknown `mood_text` is valid unrestricted text. Supplied `energy`, `tension`, `brightness`, `valence`, `arousal` are optional nullable finite [0,1] values. Preserve original inputs; no invented measured values. See 24–26.
+
+## WU3A render-contract boundary
+
+Doc 38 requires the approved versioned product render request for album and individual-track export. Neither the illustrative JSON above nor `manifest-v2.schema.json` is that request. The headless interface receives an explicit runtime album-project path; portable persisted contracts do not embed its machine-specific absolute prefix. Decision 1 approves `video-manifest-v1.schema.json` (`wrld-video-album/1.0`), `video-export-request-v1.schema.json` (`video-export-request/1.0`), and `video-export-result-v1.schema.json` (`video-export-result/1.0`). The portable manifest holds stable identity, project-relative artwork/audio, ordered tracks, optional stable clip definitions, and an allowlisted profile ID; the immutable request selects album/track and profile; the result contains factual verified artifacts/timeline only. Probed durations, normalized sample counts, offsets, tool identity, resolved runtime paths, and measured output belong in the frozen job snapshot/result, not portable publishing metadata. WU3A does not read any `youtube_metadata.json`.
+
+The current `wrld-video-album/0.1-draft` is proposed as diagnostic adapter input, not automatically valid render input. In particular, the inspected *Echoes of Asia* draft lacks stable track/album IDs and references unprefixed PNG names that do not exist. It requires explicit migration/approval; never guess filenames or rewrite it silently.

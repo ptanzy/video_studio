@@ -1,3 +1,12 @@
+## v2.0 — WU3A video-export roadmap alignment
+- Inserts WU3A between completed WU3 and future WU4 without renumbering WU4–WU6.
+- Defines WU3A as the first functional album/individual-track MP4 export unit, reusing the existing lifecycle, process ownership, staging, verification, cancellation, recovery, and shared admission infrastructure.
+- Requires static-image H.264/AAC export, exact probed timeline, YouTube-compatible chapters, a supported headless PowerShell entry point, real-media CI, and full *Echoes of Asia* automated plus human playback acceptance.
+- Moves first product video generation out of WU6 while retaining React Import/Review in WU4, Metadata review/approval in WU5, and integrated Render UX/Shorts/release acceptance in WU6.
+- Records approval of all eight WU3A contract decisions: schemas, output profile, image fit, sample-derived chapters, deterministic collision-safe outputs, headless CLI, corrected acceptance artwork, and deferred generated typography. No WU3A implementation is claimed.
+- Defines the caller-selected album directory as the WU3A project/security boundary, with portable manifest paths and generated artifacts under `<album-project>/output/`; the current `WORLD_MUSIC\WRLD-FI\Albums` convention is an acceptance default, not a hardcoded dependency.
+- Locks the exact `output/{album,tracks,shorts,metadata}` contract, metadata ownership boundaries, versioned manifest/request/result/report contracts, one 1080p30 encoding profile, image-fit/timeline/chapter policies, collision-safe names/reuse, and the headless CLI. WU3A is forbidden from reading or producing `youtube_metadata.json`; no implementation is claimed.
+
 ## v1.8 — WU0 findings resolved for WU1
 - Authoritative foundation-only WU1 scope and WU1–WU6 dependency graph.
 - Clarified read-only legacy boundary and eliminated obsolete Streamlit/legacy WU1 acceptance requirements by explicit supersession.

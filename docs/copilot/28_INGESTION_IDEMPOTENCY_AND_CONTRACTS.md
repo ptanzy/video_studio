@@ -11,3 +11,7 @@ Validate all example JSON against its *matching* schema only after that schema e
 
 ## Explicitly deferred
 No Redis, PostgreSQL, S3, message queues, multiple render workers, C# orchestrator or distributed deduplication. Document extension seams; do not implement them.
+
+## WU3A approved contract addition
+
+Doc 38 Decision 1 approves dedicated `video-manifest-v1.schema.json`, `video-export-request-v1.schema.json`, `video-export-result-v1.schema.json`, and `render-report-v1.schema.json` contracts. They follow this document's authority rule: schemas, not the current `0.1-draft` Echoes example, define accepted fields. Stable album/track IDs remain mandatory join keys; paths stored in manifest/result/report data are `/`-separated album-project-relative references. The absolute album-project path is an interface argument and must not be persisted into portable project documents. No implementation may silently mint IDs or fuzzy-match missing artwork. Source-manifest preparation remains a separate explicit operation.

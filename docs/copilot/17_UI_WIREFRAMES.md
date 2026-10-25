@@ -1,8 +1,8 @@
 # 17 — Wireframes, Component Inventory, and Copilot Mapping
 
 ## Visual assets
-- `ui-reference/index.html`: open locally in a browser; use left nav to switch Import / Review / Render. Review supports sample Short navigation, approximate color/title changes, draggable region, and demonstration buttons. No audio or FFmpeg runs.
-- `ui-reference/import.png`, `review.png`, `render.png`: screenshots captured at 1440x900; reference only.
+- `docs/ui/index.html`: open locally in a browser; use the left nav for the four-screen Import / Review / Metadata / Render reference. Review supports sample Short navigation, approximate color/title changes, draggable region, and demonstration buttons. No audio or FFmpeg runs.
+- `docs/ui/import.png`, `docs/ui/review.png`, and `docs/ui/render.png`: checked-in reference screenshots. The interactive prototype also demonstrates Metadata; the prototype and screenshots are not application source or executable acceptance evidence.
 
 ## Desktop wireframes
 
@@ -12,8 +12,8 @@
 │ WRLD STUDIO  │ Import album                                     LOCAL        │
 │ Import       │ ┌─────────────────────────────┬─────────────────────────────┐ │
 │ Review       │ │ Choose folder/manifest      │ Cover artwork               │ │
-│ Render       │ │ Validation results          │ File/metadata health        │ │
-│              │ │ Ordered WAV track list      │ Continue to Review          │ │
+│ Metadata     │ │ Validation results          │ File/metadata health        │ │
+│ Render       │ │ Ordered WAV track list      │ Continue to Review          │ │
 │              │ └─────────────────────────────┴─────────────────────────────┘ │
 └──────────────┴───────────────────────────────────────────────────────────────┘
 ```
@@ -23,8 +23,8 @@
 │ WRLD STUDIO  │ Review Shorts · Track n/m                                      │
 │ Import       │ ┌───────────────────────────────────────┬───────────────────┐ │
 │ Review       │ │ [Short rail] [9:16 preview]           │ Color preset      │ │
-│ Render       │ │                                       │ Intensity         │ │
-│              │ ├───────────────────────────────────────┤ Title             │ │
+│ Metadata     │ │                                       │ Intensity         │ │
+│ Render       │ ├───────────────────────────────────────┤ Title             │ │
 │              │ │ Whole-track waveform                 │ Zoom / grain      │ │
 │              │ │ [==== selected excerpt ====]         │ Bars / progress   │ │
 │              │ │ Play / Stop / Reset / Save            │ Refresh preview   │ │
@@ -37,8 +37,8 @@
 │ WRLD STUDIO  │ Render & verify                                               │
 │ Import       │ ┌─────────────────────────────┬─────────────────────────────┐ │
 │ Review       │ │ Compilation job             │ Preflight checks            │ │
-│ Render       │ │ Shorts job                  │ Output directory           │ │
-│              │ │ Thumbnails + metadata       │ Errors / verification      │ │
+│ Metadata     │ │ Shorts job                  │ Output directory           │ │
+│ Render       │ │ Thumbnails + metadata       │ Errors / verification      │ │
 │              │ │ Render All / Cancel         │                             │ │
 │              │ └─────────────────────────────┴─────────────────────────────┘ │
 └──────────────┴───────────────────────────────────────────────────────────────┘
@@ -58,6 +58,10 @@
 4. Overrides state and optimistic concurrency.
 5. Preview endpoints and visual controls, still first, motion second.
 6. Render jobs, progress, cancellation and output verification.
+
+Roadmap allocation: WU3A implements the headless album/track renderer before these UI steps. WU4 covers Import/Review and waveform interaction; WU5 covers Metadata; WU6 implements step 6 and integrates remaining Shorts/artifacts. The prototype never substitutes for WU3A real-video or human-playback acceptance.
+
+The WU4 Import implementation must select a server-approved album project and later support project creation beneath configurable/selectable music-library roots and channels. The browser never submits an arbitrary server filesystem path. WU6 shows artifacts from the selected project's `output/`; this portability/security behavior takes precedence over any fixed paths implied by the static mockups.
 
 ## Tests
 - Vitest + React Testing Library: navigation, state transitions, color/short overrides, validation errors, 409 conflicts, keyboard time controls.
@@ -80,11 +84,11 @@
 │              │ └──────────────────────────────┴────────────────────────────┘ │
 └──────────────┴───────────────────────────────────────────────────────────────┘
 ```
-Color inspector: `[Auto | Preset | Custom]` → swatches or `[color picker] [#HEX input]` → intensity slider → Reset to Mood. Updated visual references in `ui-reference/`; docs 18–20 control behavior and testing.
+Color inspector: `[Auto | Preset | Custom]` → swatches or `[color picker] [#HEX input]` → intensity slider → Reset to Mood. Updated visual references are in `docs/ui/`; docs 18–20 control behavior and testing.
 
 
 ## v1.5 update
-`23_BATCH_METADATA_EDITOR.md` defines the authoritative Metadata **Table/Detail** layout and bulk operations. `ui-reference/index.html` demonstrates Table/Detail switching and an end-to-end simulated walkthrough. It is not a functioning renderer, persistence layer, or upload client. `22_PREVIEW_AND_COLOR_REGRESSION.md` distinguishes approximate instant color feedback from authoritative server-rendered confirmation. See `21` for standardized errors.
+`23_BATCH_METADATA_EDITOR.md` defines the authoritative Metadata **Table/Detail** layout and bulk operations. `docs/ui/index.html` demonstrates Table/Detail switching and an end-to-end simulated walkthrough. It is not a functioning renderer, persistence layer, or upload client. `22_PREVIEW_AND_COLOR_REGRESSION.md` distinguishes approximate instant color feedback from authoritative server-rendered confirmation. See `21` for standardized errors.
 
 ## v1.6 UI additions
 On Import, add a compact normalization/validation review with source field, resolved field, source/provenance, severity and fallback. On Review, show resolved swatch and `why this color` explanation with custom HEX and reset. On Metadata, display generated/supplied/edited/approved badges and explicit approval, with chapter stale warnings and bulk edits. All design images and interactive reference now live under `docs/ui/`.

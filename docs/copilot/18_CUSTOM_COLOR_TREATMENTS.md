@@ -29,3 +29,7 @@ Follow `22_PREVIEW_AND_COLOR_REGRESSION.md`: browser preview is approximate, deb
 
 ## v1.6 auto-color resolution override
 The v1.6 `25_COLOR_RESOLUTION.md` is normative for `auto`: free-form mood text is accepted; album palette takes precedence over weak text classification, with numeric features only if supplied; unknown text falls back safely without validation failure. Older fixed mood enum/profile lists are not required input vocabulary. User `preset` and `custom` modes still follow this document.
+
+## WU3A boundary
+
+WU3A's approved `youtube-1080p30-v1` export profile is a deliberately separate static-background baseline. Under approved Doc 38 Decision 8, it uses the selected source image without generated title typography, color treatment, blur, grain, zoom, or other Shorts composition. This document remains normative for the later visual-treatment/Shorts path; it does not silently add those transforms to WU3A album or individual-track exports. A later profile may opt into them only through a separately approved contract with preview/final parity.

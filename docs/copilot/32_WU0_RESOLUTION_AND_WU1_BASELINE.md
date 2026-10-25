@@ -10,9 +10,10 @@ This handoff contains **proposed defaults for approval**. User authorization of 
 - **WU1 — foundations:** typed domain/application skeleton, minimal manifest validation, stable identity validation, revisioned atomic override storage, typed error model, fake ports, toolchain and tests. Minimal FastAPI health endpoint and React shell are permitted **only** as non-functional scaffolding; no media APIs, no UI feature behavior.
 - WU2 — media infrastructure and single-worker job lifecycle: FFprobe, FFmpeg, immutable snapshots, staging, verification, recovery and real synthetic-media tests.
 - WU3 — image rendering and color treatment: presets, custom HEX, deterministic resolution, browser proxy vs authoritative still, comparison UI, visual regression.
-- WU4 — Import and Review React workflow, WAV access, waveform Short selection, previews and override persistence.
-- WU5 — Metadata screen, batch grid, deterministic description drafts, chapters, validation and approval/export.
-- WU6 — integrated render UX, full local end-to-end, Windows/manual checks, resource bounds, docs and acceptance.
+- **WU3A — Video Export (next):** explicit album-project input, secure project-relative resolution, album/track MP4s plus render-owned chapters/report under the approved project-local output contract, ordered WAV timeline, H.264/AAC verification, headless PowerShell entry point, and mandatory real *Echoes of Asia* album plus individual-track automated/human acceptance. It does not initialize/relocate albums, read or create publishing metadata/state, or depend on the repository/current machine path. Doc 38 controls; all eight decisions are approved and implementation is authorized for a subsequent pass under the normal gate.
+- WU4 — Import and Review React workflow, future album initialization/selection beneath configurable library roots and channels, WAV access, waveform Short selection, WU3 authoritative previews, and override persistence; consumes WU3A project validation/timeline and does not reimplement album/track encoding.
+- WU5 — Metadata screen, batch grid, deterministic description drafts, validation and approval/export; consumes WU3A derived timeline/chapters, preserves portable project-relative references, and does not create a competing probe/timeline pipeline.
+- WU6 — integrated Render UX, render-job HTTP/polling/cancel/reconnection, project-local artifact presentation, remaining Shorts/thumbnails/metadata integration, resource bounds, packaging, and final POC end-to-end acceptance. First functional album/track MP4 export is not deferred to WU6.
 No unit proceeds without test evidence and user approval.
 
 ## WU1 exact implementation contract

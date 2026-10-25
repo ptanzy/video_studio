@@ -2,6 +2,8 @@
 
 **Status: Phase 1 implemented; all aesthetic/product proposals remain pending explicit approval.** Sections describing contracts and behavior below include the actual provisional Phase 1 implementation. Proposed Phase 2+ decisions are not approved requirements. This document does not authorize work beyond the explicitly approved Phase 1 scope.
 
+**Roadmap successor (v2.0):** WU3's historical completion claims below remain unchanged and do not include video export. Doc 38 defines WU3A — Video Export as the next work unit before WU4.
+
 ## 1. Objective and authority
 
 WU3 adds still-image rendering and color treatment: deterministic resolution, Auto/preset/custom HEX choices, an approximate browser proxy, an authoritative FFmpeg-rendered still, Original/Split/Treated comparison of the same source frame, and decoded-pixel visual regression. It is a reusable visual-rendering capability, not the complete Review workflow.
@@ -928,3 +930,7 @@ Windows 11 / CPython 3.12.3 local validation used the approved Gyan FFmpeg/FFpro
 The installed test versions were FastAPI 0.161.1, Pydantic 2.14.1, Uvicorn 0.54.0, HTTPX 0.28.1, and Starlette 1.9.0. FastAPI's compatibility shim emits a deprecation warning because Starlette 1.9 recommends `httpx2`; HTTPX remains the explicitly approved WU3 test dependency and all TestClient and live-Uvicorn behavior passes. The existing JSON Schema contract test infrastructure also emits its pre-existing `RefResolver` deprecation warning. Neither warning changes runtime behavior.
 
 GitHub Actions has not validated these uncommitted Phase 3D/3E changes. Native Windows and Ubuntu CI remain the final acceptance gate, including POSIX no-follow traversal, live cache-root replacement, filesystem locality, atomic publication, and real-media equivalence. Privileged mount/reparse scenarios unavailable to ordinary hosted runners remain explicit limitations rather than silently skipped claims.
+
+## 24. Forward handoff to WU3A (roadmap only)
+
+WU3A reuses this unit's `ProcessLocalRenderAdmission`, verified toolchain patterns, source-snapshot safety, and WU2 worker composition to add a separate product album/track export pipeline. It must not treat WU3 still previews as video export, mutate the accepted preview contracts, or retroactively claim WU3 implemented MP4 generation. See Doc 38 for its approved contracts, phases, tests, source-manifest preparation gate, and mandatory real-album human acceptance.

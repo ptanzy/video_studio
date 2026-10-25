@@ -8,3 +8,9 @@ A missed poll or network timeout **does not** mean a job failed. Display `Connec
 
 ## Tests
 Fake clock: heartbeat freshness, stalled warning, missed poll, reconnection, monotonic UI progress, restart reconciliation, cancellation acknowledgement, failed render and validated completion. Backend integration: worker process interruption, partial cleanup and retry idempotency. No standalone telemetry dashboard or distributed monitoring stack.
+
+## Work-unit allocation
+
+WU3A reuses the durable internal job status, heartbeat, progress, cancellation and recovery semantics for its headless album/track entry point. It does not approve the proposed browser polling route. WU6 locks the render-job HTTP contract and implements polling/reconnection UI over the same application state; it must not introduce a second job-state model.
+
+Under approved Doc 38 Decisions 1 and 5, WU3A completion results expose stable artifact IDs and album-project-relative artifact paths and merge a verified result into `output/metadata/render_report.json` only after atomic promotion. Progress/status storage and diagnostic logs remain application-managed state, not published files under the album project's `output/` tree. WU6 consumes the catalog rather than inferring target identity from filenames.

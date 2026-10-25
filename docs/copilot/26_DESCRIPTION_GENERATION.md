@@ -11,6 +11,8 @@ Video Studio creates **editable publishing drafts**, not uploads. User reviews/a
 
 Generated drafts MUST be stored separately from user overrides. Regeneration cannot overwrite approved edits. Display `generated`, `supplied`, `edited`, `approved` state and source. Editing a draft does not automatically approve it; provide explicit approval action and revision/fingerprint. Bulk editing must preserve per-output identities and revisions.
 
+WU5 materializes the explicitly approved merge as `output/metadata/youtube_metadata.json`; that export is not a render report or upload ledger. WU3A may refresh only its independently owned `chapters.txt` and factual render results; it must not read, validate, migrate, modify, or generate any `youtube_metadata.json`. A future uploader alone owns `youtube_publish_state.json`. Legacy/root publishing drafts require an explicit later-workflow import with source provenance rather than in-place mutation.
+
 ## Compilation draft structure
 - Title from explicit source or template.
 - Short introductory paragraph from approved creative album story/theme (do not invent facts about a track or promise licensing rights).

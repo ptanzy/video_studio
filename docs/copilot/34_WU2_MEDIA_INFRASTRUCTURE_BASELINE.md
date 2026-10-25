@@ -54,3 +54,5 @@ Out of scope: React UI, waveform regions, thumbnails, typography, mood mapping, 
 
 ## Explicit deferred decisions
 Full album render request and multi-artifact snapshot schema, source-file fingerprint performance optimization, product output filenames, album audio normalization, Shorts, user-facing job polling route, exact video presets, distributed locks and service deployments. These are not permission to invent product behavior during WU2.
+
+**v2.0 roadmap note:** Doc 38 now assigns the album/individual-track product render contract, static MP4, normalization/timeline, chapter output, headless entry point, and related output settings/naming decisions to WU3A. This does not change WU2's completed synthetic-only history. Shorts, browser polling, distributed locks, and service deployment remain outside WU3A except where Doc 38 explicitly says otherwise.

@@ -6,12 +6,16 @@
 - `legacy_v2/` is **reference material only**. Do not copy the monolithic `build_video.py`, import it, call it as a subprocess, preserve its global mutable state, or let it determine module boundaries. Extract requirements and prove behavior with tests; implement modular ports/adapters anew. No hidden fallbacks to legacy paths.
 - No Redis, PostgreSQL, cloud object store, distributed queue, container orchestration, or multiworker scheduler in the POC. Future ports may permit them, but adding infrastructure requires explicit authorization.
 
+WU3A adds a headless album/track export adapter over the same application services and storage/process ports. Its trusted composition accepts the explicit album-project directory, while portable manifests retain project-relative paths. It does not add frontend code, album-folder initialization, publishing-metadata access, or a second FFmpeg path. The approved Doc 38 request/result fields control Phase 1; any additional stable error code still requires explicit contract review. Absolute filesystem paths and raw tool exceptions remain private outside trusted local diagnostics.
+
 ## Storage boundary and ownership
-- `SourceAssetStore`: read-only WAV, artwork, and canonical album metadata. Never mutate inputs.
+- `SourceAssetStore`: read-only WAV, artwork, and canonical album metadata resolved inside the explicit album-project boundary. Never mutate inputs or follow an escape outside the project.
 - `EditorStateStore`: versioned overrides and optimistic revision check; atomic same-filesystem replacement. Only application service writes.
 - `ScratchStore`: job-scoped transient files under a configurable local scratch root, e.g. `<workspace>/.wrld-scratch/<job_id>/`; never assume `/tmp` exists on Windows. Clean only known job-owned scratch after validation/cancellation; record abandoned job IDs for startup reconciliation.
-- `ArtifactStore`: validated final MP4/JPG/text/JSON artifacts under configured output root. Publish by atomic same-volume rename; never treat scratch as published artifacts. Future S3/Blob adapter is deferred and must have explicit promotion semantics.
+- `ArtifactStore`: validated final MP4/JPG/text/JSON artifacts under `<album-project>/output/`. Publish by atomic same-volume rename; never treat scratch as published artifacts or redirect one project's output into another project/repository. Future S3/Blob adapter is deferred and must have explicit promotion semantics.
 - `JobRepository`: POC local durable JSON state with one active render, job IDs and immutable request snapshots. Future Redis/SQL implementations may replace the adapter, not the domain API.
+
+`render_report.json` is the approved revisioned verified-artifact catalog, not editable publishing text. `youtube_metadata.json` is WU5's materialization of revisioned editor state and is outside the WU3A read/write boundary. `youtube_publish_state.json` is reserved for a future uploader and is absent until actual publishing state exists. Downstream automation joins these contracts by stable target/artifact IDs and project-relative paths; it never infers ownership or target type from a filename alone.
 
 ## Error envelope
 Every API failure uses a stable machine-readable body; HTTP status is not the error code:

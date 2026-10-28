@@ -1,5 +1,9 @@
 # Media quality, regression, and resource testing — v1.1
 
+## WU3B motion-regression allocation
+
+Doc 39 adds required generated-frame checks for crop-safe continuous camera motion, deterministic RMS amplitude bars, silence baseline, fixed overlay zones, and sample-boundary track-progress resets. Tests use the approved 30 fps/48 kHz mapping, include boundaries not divisible by 1,600 samples, and prove that audio order/content and WU3A static output behavior remain unchanged. Decode comparisons use reviewed pixel/geometry tolerances rather than MP4 hashes. A bounded real preview and one full real track require Windows human review; that evidence remains separate from WU3A's pending full-album acceptance.
+
 ## Three verification layers
 1. **Structural:** ffprobe JSON: H.264 video + AAC audio, dimensions 1920x1080 or 1080x1920 in production, 30 fps nominal, yuv420p, nonzero streams/duration, sensible audio sample rate; test resolution may be reduced. Explicitly define tolerances (e.g., video duration within 2 frames + 0.15 s of expected; adjust only with documented encoder evidence).
 2. **Audio content:** synthetic per-track sine tones at distinct frequencies; decode rendered excerpts to PCM and verify dominant spectral energy near expected tone. Test wrong-track selection, offset, fade boundaries, first/last samples with codec-tolerant windows, and compilation transition order. For accurate excerpt boundaries, use a time-varying fixture (chirp or distinct tone segments), not a constant tone alone.

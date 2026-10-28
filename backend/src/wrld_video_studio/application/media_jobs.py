@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import math
 import os
+import stat
 import threading
 import time
 import uuid
@@ -18,6 +19,7 @@ from wrld_video_studio.application.ports.media import (
     JobEventSink,
     JobRepository,
     MediaProber,
+    RenderJobHandler,
     SyntheticEncoder,
 )
 from wrld_video_studio.application.ports.render_coordination import (
@@ -69,14 +71,15 @@ class MediaJobs:
         renderer_version: str,
         *,
         force: bool = False,
+        input_paths: list[str] | tuple[str, ...] | None = None,
     ) -> tuple[RenderSnapshot, JobStatus]:
         normalized = dict(request)
-        input_paths = normalized.get("inputs")
-        if not isinstance(input_paths, list) or not input_paths:
+        requested_inputs = input_paths if input_paths is not None else normalized.get("inputs")
+        if not isinstance(requested_inputs, (list, tuple)) or not requested_inputs:
             raise MediaInfrastructureError("INVALID_REQUEST", "At least one relative input is required.")
         inputs = tuple(
             InputFingerprint(relative_path=relative, sha256=self._fingerprint(source_root, relative))
-            for relative in input_paths
+            for relative in requested_inputs
         )
         digest_snapshot = create_snapshot(
             job_id="digest-only",
@@ -137,7 +140,21 @@ class MediaJobs:
             or ".." in windows.parts
         ):
             raise MediaInfrastructureError("INVALID_INPUT_PATH", "Input path must be relative and contained.")
-        path = (root_path / Path(*posix.parts)).resolve(strict=False)
+        candidate = root_path
+        for part in posix.parts:
+            candidate = candidate / part
+            try:
+                info = candidate.lstat()
+            except OSError:
+                continue
+            attributes = getattr(info, "st_file_attributes", 0)
+            if stat.S_ISLNK(info.st_mode) or attributes & getattr(
+                stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400
+            ):
+                raise MediaInfrastructureError(
+                    "INVALID_INPUT_PATH", "Input paths may not traverse links or reparse points."
+                )
+        path = candidate.resolve(strict=False)
         try:
             path.relative_to(root_path)
         except ValueError as error:
@@ -167,6 +184,7 @@ class RenderWorker:
         admission: RenderAdmissionCoordinator,
         event_sink: JobEventSink | None = None,
         clock: Clock | None = None,
+        request_handlers: tuple[RenderJobHandler, ...] = (),
     ) -> None:
         self.repository = repository
         self.prober = prober
@@ -177,6 +195,7 @@ class RenderWorker:
         self.admission = admission
         self.event_sink = event_sink
         self.clock = clock or SystemClock()
+        self.request_handlers = request_handlers
         self._lock = threading.Lock()
         self._control_lock = threading.Lock()
         self._cancel_events: dict[tuple[str, str], threading.Event] = {}
@@ -284,6 +303,9 @@ class RenderWorker:
             JobState.RUNNING, JobState.VALIDATING, JobState.CANCEL_REQUESTED
         }:
             return None
+        handler = self._request_handler(snapshot)
+        if handler is not None:
+            return handler.reconcile(self, snapshot, status)
         plan = self._plan(snapshot)
         final = self.artifacts.resolve_final(plan.output_relative_path)
         expected = self._expected(plan)
@@ -333,6 +355,9 @@ class RenderWorker:
         token: threading.Event,
         started: float,
     ) -> tuple[RenderSnapshot, JobStatus]:
+        handler = self._request_handler(snapshot)
+        if handler is not None:
+            return handler.execute(self, snapshot, status, token, started)
         try:
             plan = self._plan(snapshot)
             source = self._source_path(snapshot, plan)
@@ -543,6 +568,14 @@ class RenderWorker:
             return plan
         except (KeyError, TypeError, ValueError) as error:
             raise MediaInfrastructureError("INVALID_RENDER_PLAN", "Synthetic proof request is incomplete.") from error
+
+    def _request_handler(self, snapshot: RenderSnapshot) -> RenderJobHandler | None:
+        matches = [handler for handler in self.request_handlers if handler.supports(snapshot)]
+        if len(matches) > 1:
+            raise MediaInfrastructureError(
+                "INVALID_RENDER_PLAN", "More than one handler accepted the render request."
+            )
+        return matches[0] if matches else None
 
     def _source_path(self, snapshot: RenderSnapshot, plan: RenderPlan) -> Path:
         inputs = [item for item in snapshot.inputs if item.relative_path == plan.snapshot.request.get("inputs", [None])[0]]

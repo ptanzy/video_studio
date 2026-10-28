@@ -152,6 +152,28 @@ def test_process_runner_uses_bounded_output_and_returns_nonzero_code():
     assert len(result.stderr_tail.encode("utf-8")) <= 64
 
 
+def test_process_runner_uses_validated_working_directory(tmp_path):
+    work = tmp_path / "attempt-owned"
+    work.mkdir()
+    result = SubprocessRunner().run(
+        [getattr(sys, "_base_executable", sys.executable), "-c", "from pathlib import Path; print(Path.cwd().name)"],
+        timeout_seconds=10,
+        working_directory=work,
+    )
+    assert result.returncode == 0
+    assert result.stdout.strip() == "attempt-owned"
+
+
+def test_process_runner_rejects_missing_working_directory(tmp_path):
+    with pytest.raises(MediaInfrastructureError) as failure:
+        SubprocessRunner().run(
+            [getattr(sys, "_base_executable", sys.executable), "-c", "print('never')"],
+            timeout_seconds=10,
+            working_directory=tmp_path / "missing",
+        )
+    assert failure.value.code == "INVALID_COMMAND"
+
+
 def test_process_runner_times_out_and_reaps_owned_child():
     result = SubprocessRunner(grace_seconds=0.1).run(
         [getattr(sys, "_base_executable", sys.executable), "-c", "import time; time.sleep(30)"], timeout_seconds=0.1
@@ -352,5 +374,12 @@ def test_progress_parser_keeps_unknown_null_and_monotonic_known_values():
     regressed = parser.feed_line("progress=continue")
     assert regressed is not None and regressed.progress_percent == 50
     parser.feed_line("out_time_us=3000000")
+    ended = parser.feed_line("progress=end")
+    assert ended is not None and ended.progress_percent == 100 and ended.ended
+
+
+def test_progress_parser_marks_end_complete_when_timestamp_rounds_short():
+    parser = FFmpegProgressParser(60.0)
+    parser.feed_line("out_time_us=59996000")
     ended = parser.feed_line("progress=end")
     assert ended is not None and ended.progress_percent == 100 and ended.ended

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/render-diagnostic-v1.schema.json",
+  "title": "WRLD Private Render Failure Diagnostic v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version", "job_id", "attempt_id", "request_digest",
+    "failure_phase", "error", "ffmpeg_command", "ffmpeg_stderr_tail",
+    "toolchain", "probe", "cleanup", "failed_at"
+  ],
+  "properties": {
+    "contract_version": {"const": "wrld-render-diagnostic/1.0"},
+    "job_id": {"type": "string", "minLength": 1},
+    "attempt_id": {"type": "string", "minLength": 1},
+    "request_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "failure_phase": {
+      "enum": [
+        "preparing", "snapshotting_sources", "normalizing_audio",
+        "assembling_audio", "encoding", "probing_output", "decoding_output",
+        "publishing_artifacts", "publishing_report", "completed"
+      ]
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "predicate", "expected", "actual"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1},
+        "predicate": {"type": ["string", "null"]},
+        "expected": {},
+        "actual": {}
+      }
+    },
+    "ffmpeg_command": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(?![A-Za-z]:[\\\\/]|\\\\\\\\|/).*$"
+      }
+    },
+    "ffmpeg_stderr_tail": {"type": "string", "maxLength": 16384},
+    "toolchain": {"type": "object"},
+    "probe": {"type": ["object", "null"]},
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "error_code", "started_at", "finished_at"],
+      "properties": {
+        "outcome": {"enum": ["succeeded", "failed"]},
+        "error_code": {"type": ["string", "null"]},
+        "started_at": {"type": "string", "format": "date-time"},
+        "finished_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "failed_at": {"type": "string", "format": "date-time"}
+  }
+}

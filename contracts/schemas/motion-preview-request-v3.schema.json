@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/motion-preview-request-v3.schema.json",
+  "title": "WRLD Motion Preview Request v3 Player",
+  "type": "object", "additionalProperties": false,
+  "required": ["contract_version", "target", "profile_id", "effects", "resolved_player", "excerpt"],
+  "properties": {
+    "contract_version": {"const": "motion-preview-request/3.0"}, "profile_id": {"const": "youtube-1080p30-player-v1"},
+    "effects": {"$ref": "https://wrld.local/schemas/video-effects-v3.schema.json"}, "resolved_player": {"$ref": "https://wrld.local/schemas/resolved-player-v1.schema.json"},
+    "target": {"oneOf": [
+      {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"const": "album"}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "track_id"], "properties": {"kind": {"const": "track"}, "track_id": {"type": "string", "minLength": 1, "maxLength": 128}}}
+    ]},
+    "excerpt": {"type": "object", "additionalProperties": false, "required": ["start_sample", "sample_count"], "properties": {
+      "start_sample": {"type": "integer", "minimum": 0}, "sample_count": {"type": "integer", "minimum": 144000, "maximum": 720000}
+    }}
+  }
+}

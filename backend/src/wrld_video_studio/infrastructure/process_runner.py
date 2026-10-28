@@ -78,6 +78,7 @@ class SubprocessRunner:
         cancel_event: Any = None,
         heartbeat: Any = None,
         progress_callback: Any = None,
+        working_directory: str | Path | None = None,
     ) -> ProcessExecution:
         if not argv or not all(isinstance(argument, str) for argument in argv):
             raise MediaInfrastructureError("INVALID_COMMAND", "Process arguments must be strings.")
@@ -90,6 +91,18 @@ class SubprocessRunner:
             "shell": False,
             "close_fds": True,
         }
+        if working_directory is not None:
+            try:
+                directory = Path(working_directory).resolve(strict=True)
+            except OSError as error:
+                raise MediaInfrastructureError(
+                    "INVALID_COMMAND", "Process working directory is unavailable."
+                ) from error
+            if not directory.is_dir():
+                raise MediaInfrastructureError(
+                    "INVALID_COMMAND", "Process working directory must be a directory."
+                )
+            kwargs["cwd"] = str(directory)
         if os.name == "nt":
             kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
         else:

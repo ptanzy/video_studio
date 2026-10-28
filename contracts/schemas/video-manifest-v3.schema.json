@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/video-manifest-v3.schema.json",
+  "title": "WRLD Video Album Manifest v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "album", "visual", "tracks", "render"],
+  "properties": {
+    "format": {"const": "wrld-video-album/3.0"},
+    "album": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "title", "artist", "channel"],
+      "properties": {
+        "id": {"$ref": "#/$defs/stableId"}, "title": {"$ref": "#/$defs/nonemptyString"},
+        "artist": {"$ref": "#/$defs/nonemptyString"}, "channel": {"$ref": "#/$defs/nonemptyString"}
+      }
+    },
+    "visual": {
+      "type": "object", "additionalProperties": false, "required": ["background"],
+      "properties": {
+        "background": {"$ref": "#/$defs/relativePath"}, "cover": {"$ref": "#/$defs/relativePath"},
+        "thumbnail": {"$ref": "#/$defs/relativePath"}
+      }
+    },
+    "tracks": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "number", "title", "audio"],
+        "properties": {
+          "id": {"$ref": "#/$defs/stableId"}, "number": {"type": "integer", "minimum": 1},
+          "title": {"$ref": "#/$defs/nonemptyString"}, "audio": {"$ref": "#/$defs/relativePath"},
+          "clips": {"type": "array", "items": {"type": "object", "required": ["id"], "properties": {"id": {"$ref": "#/$defs/stableId"}}, "additionalProperties": true}}
+        }
+      }
+    },
+    "render": {
+      "type": "object", "additionalProperties": false, "required": ["profile_id", "effects"],
+      "properties": {
+        "profile_id": {"const": "youtube-1080p30-motion-v2"},
+        "effects": {"$ref": "https://wrld.local/schemas/video-effects-v2.schema.json"},
+        "track_effects": {
+          "type": "array", "default": [],
+          "items": {"type": "object", "additionalProperties": false, "required": ["track_id", "effects"],
+            "properties": {"track_id": {"$ref": "#/$defs/stableId"}, "effects": {"$ref": "https://wrld.local/schemas/video-effects-v2.schema.json"}}}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonemptyString": {"type": "string", "minLength": 1},
+    "stableId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"}
+  }
+}

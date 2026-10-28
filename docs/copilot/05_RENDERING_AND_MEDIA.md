@@ -7,6 +7,10 @@ The bundled legacy v2 uses FFmpeg to normalize input to 48 kHz stereo PCM, conca
 
 WU3A implements the first product album and individual-track MP4 slice using static source artwork, ordered WAV audio, exact derived timeline, H.264/`yuv420p`/AAC/`+faststart`, chapter output, and the existing verified job lifecycle. The caller-selected album directory is the project boundary and the `output/` tree below is relative to it; no generated artifact may be redirected to the development repository or a sibling album. For WU3A, generated motion, title overlays, grain, bars, progress graphics, portrait/Short composition, thumbnails, descriptions, and upload CSV remain deferred. The complete output tree below remains the final product target, not the minimum WU3A artifact set. Doc 38 controls WU3A output and acceptance.
 
+## WU3B allocation
+
+Doc 39 moves only flat-image pan/zoom, amplitude/RMS bars, and rendered current-track progress into WU3B. Its additive v2 motion profile inherits WU3A's exact 1080p30 H.264/AAC/BT.709 settings, normalized-sample timeline, verification, and lifecycle while keeping v1 static behavior and paths unchanged. Older effect examples below are product direction only where Doc 39 does not define a more specific contract. Frequency-spectrum graphics, grain, generated/title layers, title-aware motion/fades, parallax, atmospheric/layered composition, and effect depth remain deferred to a later approved extension or WU7. WU3B implementation remains blocked until Doc 39's exact proposed contracts are approved.
+
 ## Approved output contract
 ```text
 output/

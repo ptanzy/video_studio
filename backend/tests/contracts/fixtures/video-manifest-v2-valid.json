@@ -1,0 +1,45 @@
+{
+  "format": "wrld-video-album/2.0",
+  "album": {
+    "id": "album-01",
+    "title": "Album One",
+    "artist": "WRLD Music",
+    "channel": "WRLD-FI"
+  },
+  "visual": {"background": "art/background.png"},
+  "tracks": [
+    {"id": "track-01", "number": 1, "title": "First", "audio": "audio/first.wav"}
+  ],
+  "render": {
+    "profile_id": "youtube-1080p30-motion-v1",
+    "effects": {
+      "pan_zoom": {
+        "enabled": false,
+        "max_zoom": 1.04,
+        "path": "diagonal_down_right",
+        "cycle_seconds": 180.0,
+        "return_to_origin": true,
+        "return_duration_seconds": 5.0,
+        "easing": "smoothstep"
+      },
+      "audio_bars": {
+        "enabled": false,
+        "bar_count": 24,
+        "opacity": 0.65,
+        "placement": "bottom_center",
+        "rms_window_samples": 1920,
+        "attack_ms": 60.0,
+        "release_ms": 240.0
+      },
+      "track_progress": {
+        "enabled": false,
+        "style": "line",
+        "placement": "bottom",
+        "opacity": 0.8,
+        "thickness_px": 6,
+        "segment_count": 20
+      }
+    },
+    "track_effects": []
+  }
+}

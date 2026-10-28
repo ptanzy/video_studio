@@ -34,5 +34,6 @@ Import -> validate -> probe -> cache thumbnails/waveform envelopes -> review -> 
 ## v1.4 four-screen flow
 Import → Review → **Metadata** → Render. Review adds custom HEX color picker; Metadata provides compilation and per-Short title/description editing, chapter inspection, link-placeholder checks and save/reload. See 18–19 and updated ui-reference HTML.
 
-## v2.0 roadmap allocation
-WU3A delivers headless static album/track MP4 generation and the authoritative audio timeline before frontend work. WU4 implements Import/Review, WU5 implements Metadata and consumes WU3A chapter data, and WU6 implements the Render screen plus integrated job HTTP behavior and remaining Shorts/artifacts. This UI specification does not move those responsibilities back into WU3A.
+## v2.2 roadmap allocation
+
+WU3A delivers headless static album/track MP4 generation and the authoritative audio timeline before frontend work, with acceptance still independently pending. After its exact contract gate, WU3B adds production-path flat-image motion, amplitude/RMS bars, rendered track progress, and a private bounded temporary MP4 preview use case. WU4 implements Import/Review and exposes the approved WU3B effect controls and motion preview; WU5 implements Metadata and consumes shared chapter data; WU6 implements the Render screen plus integrated job HTTP behavior and remaining Shorts/artifacts. WU7 owns layered/title-aware/atmospheric composition and its dedicated editor. Earlier preview examples do not authorize low-resolution divergence, title generation, frequency-spectrum claims, or persistent preview artifacts contrary to Doc 39.

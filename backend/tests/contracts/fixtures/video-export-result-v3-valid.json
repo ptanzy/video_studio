@@ -1,0 +1,14 @@
+{
+  "contract_version": "video-export-result/3.0",
+  "job_id": "job-1", "attempt_id": "attempt-1", "state": "completed",
+  "target": {"kind": "album"}, "profile_id": "youtube-1080p30-motion-v2",
+  "effects": {
+    "pan_zoom": {"enabled": true, "max_zoom": 1.04, "path": "diagonal_down_right", "cycle_seconds": 180.0, "return_to_origin": true, "return_duration_seconds": 5.0, "easing": "smoothstep"},
+    "audio_bars": {"enabled": true, "variation_mode": "organic_rms", "bar_count": 24, "color": "#FF69B4", "opacity": 0.65, "placement": "bottom_center", "zone_width_px": 640, "zone_height_px": 180, "gap_px": 4, "horizontal_offset_px": 0, "bottom_margin_px": 64, "rms_window_samples": 1920, "attack_ms": 60.0, "release_ms": 240.0, "glow": {"enabled": true, "intensity": 0.35}},
+    "track_progress": {"enabled": true, "style": "line", "placement": "bottom", "color": "#FF69B4", "fill_opacity": 0.8, "rail_color": null, "rail_contrast_strength": 0.6, "rail_opacity": 0.35, "thickness_px": 6, "segment_count": 20}
+  },
+  "request_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "artifacts": [{"kind": "album_video", "path": "output/profiles/youtube-1080p30-motion-v2/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/album/Album One.mp4", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "byte_size": 123, "verification": "verified", "media": {"width": 1920, "height": 1080}}],
+  "timeline": [{"track_id": "track-01", "number": 1, "title": "First", "start_sample": 0, "sample_count": 48000, "display_seconds": 0}],
+  "warnings": [], "started_at": "2026-10-26T00:00:00Z", "finished_at": "2026-10-26T00:01:00Z"
+}

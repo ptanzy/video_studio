@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/video-export-request-v3.schema.json",
+  "title": "WRLD Video Export Request v3",
+  "type": "object", "additionalProperties": false,
+  "required": ["contract_version", "target", "profile_id", "effects"],
+  "properties": {
+    "contract_version": {"const": "video-export-request/3.0"},
+    "profile_id": {"const": "youtube-1080p30-motion-v2"},
+    "effects": {"$ref": "https://wrld.local/schemas/video-effects-v2.schema.json"},
+    "target": {"oneOf": [
+      {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"const": "album"}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "track_id"], "properties": {"kind": {"const": "track"}, "track_id": {"type": "string", "minLength": 1, "maxLength": 128}}}
+    ]}
+  }
+}

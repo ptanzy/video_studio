@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/player-overlay-v1.schema.json",
+  "title": "WRLD Player Overlay v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["contract_version", "font", "footer", "progress", "metadata", "announcement", "theme"],
+  "properties": {
+    "contract_version": {"const": "player-overlay/1.0"},
+    "font": {"type": "object", "additionalProperties": false, "required": ["path", "metadata_size_px", "timer_size_px", "announcement_size_px"], "properties": {
+      "path": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+\\.(?:ttf|otf)$"},
+      "metadata_size_px": {"type": "integer", "minimum": 16, "maximum": 32},
+      "timer_size_px": {"type": "integer", "minimum": 14, "maximum": 28},
+      "announcement_size_px": {"type": "integer", "minimum": 24, "maximum": 64}
+    }},
+    "footer": {"type": "object", "additionalProperties": false, "required": ["enabled", "height_px", "background_color", "opacity"], "properties": {
+      "enabled": {"type": "boolean"}, "height_px": {"type": "integer", "minimum": 80, "maximum": 180},
+      "background_color": {"$ref": "#/$defs/hex"}, "opacity": {"type": "number", "minimum": 0.1, "maximum": 1.0}
+    }},
+    "progress": {"type": "object", "additionalProperties": false, "required": ["enabled", "mode", "thickness_px", "fill_opacity", "rail_opacity"], "properties": {
+      "enabled": {"type": "boolean"}, "mode": {"enum": ["track", "album"]}, "thickness_px": {"type": "integer", "minimum": 2, "maximum": 16},
+      "fill_opacity": {"type": "number", "minimum": 0.1, "maximum": 1.0}, "rail_opacity": {"type": "number", "minimum": 0.1, "maximum": 1.0}
+    }},
+    "metadata": {"type": "object", "additionalProperties": false, "required": ["enabled", "bpm_key_policy", "transition_seconds"], "properties": {
+      "enabled": {"type": "boolean"}, "bpm_key_policy": {"const": "prefer_reliable_analyzed_then_intended"}, "transition_seconds": {"const": 6.0}
+    }},
+    "announcement": {"type": "object", "additionalProperties": false, "required": ["enabled", "fade_in_seconds", "hold_seconds", "fade_out_seconds"], "properties": {
+      "enabled": {"type": "boolean"}, "fade_in_seconds": {"type": "number", "minimum": 0.1, "maximum": 2.0},
+      "hold_seconds": {"type": "number", "minimum": 0.0, "maximum": 10.0}, "fade_out_seconds": {"type": "number", "minimum": 0.1, "maximum": 2.0}
+    }},
+    "theme": {"type": "object", "additionalProperties": false, "required": ["mode", "preset", "overrides"], "properties": {
+      "mode": {"enum": ["automatic", "manual", "hybrid"]}, "preset": {"enum": ["subtle", "balanced", "vibrant"]},
+      "overrides": {"type": "object", "additionalProperties": false, "required": ["footer_background", "primary_text", "secondary_text", "progress_fill", "progress_rail", "visualizer"], "properties": {
+        "footer_background": {"$ref": "#/$defs/nullableHex"}, "primary_text": {"$ref": "#/$defs/nullableHex"}, "secondary_text": {"$ref": "#/$defs/nullableHex"},
+        "progress_fill": {"$ref": "#/$defs/nullableHex"}, "progress_rail": {"$ref": "#/$defs/nullableHex"}, "visualizer": {"$ref": "#/$defs/nullableHex"}
+      }}
+    }}
+  },
+  "$defs": {
+    "hex": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+    "nullableHex": {"type": ["string", "null"], "pattern": "^#[0-9A-Fa-f]{6}$"}
+  }
+}

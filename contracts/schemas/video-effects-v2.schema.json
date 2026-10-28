@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/video-effects-v2.schema.json",
+  "title": "WRLD Video Effects v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pan_zoom", "audio_bars", "track_progress"],
+  "properties": {
+    "pan_zoom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "max_zoom", "path", "cycle_seconds", "return_to_origin", "return_duration_seconds", "easing"],
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "max_zoom": {"type": "number", "minimum": 1.0, "maximum": 1.05, "default": 1.04},
+        "path": {"enum": ["center", "horizontal", "vertical", "diagonal_down_right", "diagonal_up_right"], "default": "diagonal_down_right"},
+        "cycle_seconds": {"type": "number", "minimum": 15.0, "maximum": 600.0, "default": 180.0},
+        "return_to_origin": {"type": "boolean", "default": true},
+        "return_duration_seconds": {"type": "number", "minimum": 0.5, "maximum": 30.0, "default": 5.0},
+        "easing": {"const": "smoothstep", "default": "smoothstep"}
+      }
+    },
+    "audio_bars": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "variation_mode", "bar_count", "color", "opacity", "placement", "zone_width_px", "zone_height_px", "gap_px", "horizontal_offset_px", "bottom_margin_px", "rms_window_samples", "attack_ms", "release_ms", "glow"],
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "variation_mode": {"enum": ["organic_rms", "symmetrical"], "default": "organic_rms"},
+        "bar_count": {"type": "integer", "minimum": 8, "maximum": 64, "default": 24},
+        "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#FFFFFF"},
+        "opacity": {"type": "number", "minimum": 0.1, "maximum": 1.0, "default": 0.65},
+        "placement": {"enum": ["bottom_left", "bottom_center", "bottom_right"], "default": "bottom_center"},
+        "zone_width_px": {"type": "integer", "minimum": 160, "maximum": 1792, "default": 640},
+        "zone_height_px": {"type": "integer", "minimum": 32, "maximum": 952, "default": 180},
+        "gap_px": {"type": "integer", "minimum": 0, "maximum": 32, "default": 4},
+        "horizontal_offset_px": {"type": "integer", "minimum": -1792, "maximum": 1792, "default": 0},
+        "bottom_margin_px": {"type": "integer", "minimum": 64, "maximum": 1016, "default": 64},
+        "rms_window_samples": {"type": "integer", "minimum": 480, "maximum": 4800, "default": 1920},
+        "attack_ms": {"type": "number", "minimum": 0.0, "maximum": 500.0, "default": 60.0},
+        "release_ms": {"type": "number", "minimum": 0.0, "maximum": 1000.0, "default": 240.0},
+        "glow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "intensity"],
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+            "intensity": {"type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.35}
+          }
+        }
+      }
+    },
+    "track_progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "style", "placement", "color", "fill_opacity", "rail_color", "rail_contrast_strength", "rail_opacity", "thickness_px", "segment_count"],
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "style": {"enum": ["line", "segmented"], "default": "line"},
+        "placement": {"enum": ["top", "bottom"], "default": "bottom"},
+        "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#FFFFFF"},
+        "fill_opacity": {"type": "number", "minimum": 0.1, "maximum": 1.0, "default": 0.8},
+        "rail_color": {"type": ["string", "null"], "pattern": "^#[0-9A-Fa-f]{6}$", "default": null},
+        "rail_contrast_strength": {"type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.6},
+        "rail_opacity": {"type": "number", "minimum": 0.1, "maximum": 1.0, "default": 0.35},
+        "thickness_px": {"type": "integer", "minimum": 2, "maximum": 16, "default": 6},
+        "segment_count": {"type": "integer", "minimum": 5, "maximum": 60, "default": 20}
+      }
+    }
+  }
+}

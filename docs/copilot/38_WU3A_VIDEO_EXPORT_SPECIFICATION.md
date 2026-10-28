@@ -1,6 +1,8 @@
 # 38 — WU3A Video Export Specification
 
-**Status:** all eight WU3A contract decisions are approved; implementation has not started. **WU3A is the next work unit.** Its sequence is WU1 → WU2 → WU3 → **WU3A** → WU4 → WU5 → WU6. Implementation is authorized for a subsequent implementation pass subject to the normal `AGENTS.md` exact plan/report gate. This approval-record pass changes documentation only.
+**Roadmap successor (v2.2):** WU3A's contracts and acceptance criteria below remain unchanged. WU3A has an implementation candidate but remains **IMPLEMENTED — ACCEPTANCE PENDING**. Doc 39 places WU3B next, before WU4, while tracking WU3A's real-album and human-playback acceptance independently.
+
+**Status:** all eight WU3A contract decisions are approved and an implementation candidate is present. **Final WU3A acceptance is pending** the real *Echoes of Asia* album render, one full-track render, automated probe/full-decode evidence, and human playback review. WU3A's historical position remains after WU3; Doc 39 controls successor sequencing.
 
 ## 1. Authority and historical boundary
 
@@ -107,7 +109,7 @@ The following layout is the approved cross-work-unit album/output contract. WU3A
 
 Only `output/album/`, `output/tracks/`, and `output/metadata/` are created by WU3A, and only when an approved WU3A artifact needs them. Within `output/metadata/`, WU3A creates only `chapters.txt` and `render_report.json`. It does not read or create `youtube_metadata.json`, and it does not create `youtube_publish_state.json` or `output/shorts/`. Empty output directories are neither required nor pre-created. Temporary media remains in the existing attempt-owned `FilesystemArtifactStore` staging area and is promoted into this tree only after verification; a partial file is never a final artifact.
 
-Source locations are manifest-controlled relative paths, not mandatory fixed filenames or subfolders. The conceptual names `cover.png`, `thumbnail.png`, and `video_background.png` are roles, not discovery rules. The current *Echoes of Asia* directory instead contains prefixed PNG filenames while its draft manifest references unprefixed names. Strict validation therefore fails today. A separately approved manifest preparation/migration must supply exact existing relative filenames and explicit stable IDs. WU3A must not fuzzy-match, rename assets, invent identity from a title, or rewrite the source manifest automatically.
+Source locations are manifest-controlled relative paths, not mandatory fixed filenames or subfolders. The conceptual names `cover.png`, `thumbnail.png`, and `video_background.png` are roles, not discovery rules. The current *Echoes of Asia* project now contains those exact files and its manually migrated `wrld-video-album/1.0` manifest supplies the approved stable identities and exact paths. The implemented validator accepts that current state. WU3A must not fuzzy-match, rename assets, invent identity from a title, or rewrite the source manifest automatically.
 
 All result and publishing references use `/`-separated paths relative to `<album-project>` (for example, `output/album/Echoes of Asia.mp4`) and reject `.`/`..`, empty segments, absolute/drive/UNC paths, reserved device names, and canonical containment escapes. Runtime diagnostics and immutable job records may retain resolved local paths where required for recovery, but portable manifests and publishing exports do not.
 
@@ -145,6 +147,7 @@ During WU5, the authoritative editable source is the revisioned publishing overr
 
 - The selected image supplies every video frame for the artifact duration; no motion/effects are introduced in WU3A.
 - Production output retains the approved baseline: 1920×1080, 30 fps, H.264, `yuv420p`, AAC, `+faststart`.
+- RGB artwork conversion must use the BT.709 matrix and assign frame-level `colorspace=bt709`, `color_primaries=bt709`, and `color_trc=bt709` before encoding while retaining the encoder-level BT.709 options. Verification remains strict for all three FFprobe stream fields. Direct libx264 VUI parameters are not part of the profile unless a real-media regression proves the frame/filter and encoder options insufficient.
 - The encoder uses argument arrays through the existing owned-process runner. No shell command construction or manual FFmpeg bypass is an application interface.
 - Audio and video termination must be tested so the last track is neither truncated nor followed by an unintended material tail. AAC padding and video-frame tolerance must be measured and documented.
 - Approved Decisions 2–3 define the single `youtube-1080p30-v1` profile and aspect-preserving contain/black-pad image policy. The corrected *Echoes of Asia* acceptance background is exact 1920×1080 and visibly identifies *Echoes of Asia*, subject to normal application validation of the current file.
@@ -164,6 +167,14 @@ The export use case must submit an immutable snapshot through the existing durab
 
 Album and track export share these semantics. WU3A must not create a second scheduler, repository, artifact-store convention, cancellation model, or render-admission instance.
 
+### 9.1 Durable progress and failure diagnostics
+
+WU3A owns two application-private versioned records: `wrld-render-progress/1.0` and `wrld-render-diagnostic/1.0`. They are stored in the OS-appropriate per-user state root partitioned by project identity, never in album output and never in publishing metadata.
+
+The progress record uses exactly the phases in Doc 30, keeps job state separate, and records only measurable phase percentage, applicable track counts and duration, elapsed time, reliable ETA, progress/heartbeat timestamps, and failure phase/diagnostic reference. There is no weighted overall percentage. Encoding reaches 100% on FFmpeg `progress=end`; probing and complete decode are subsequent phases; completion follows verification, artifact/report publication, cleanup, and required persistence.
+
+A failed attempt diagnostic contains job/attempt/request identity, failure phase, primary error and exact predicate/expected/actual values, sanitized FFmpeg arguments, bounded sanitized stderr, FFmpeg/FFprobe versions, relevant path-free FFprobe properties, cleanup outcome/timestamps, and failure time. Absolute source paths and publishing metadata are prohibited. Failed media is not retained. Diagnostic or cleanup failure cannot replace the authoritative primary rendering failure.
+
 ## 10. Headless entry point
 
 Before WU3A completion, an ordinary Windows PowerShell user must be able to invoke a supported entry point from the installed/development environment regardless of repository location that:
@@ -173,6 +184,7 @@ Before WU3A completion, an ordinary Windows PowerShell user must be able to invo
 - validates and prints preflight failures before encoding;
 - submits and runs/reconciles the application job rather than constructing an ad hoc FFmpeg render;
 - prints job/attempt identity, status, output path, verified media summary, chapter artifact path, and actionable diagnostics;
+- emits throttled non-in-place live progress and terminal outcome to stderr while reserving stdout for the existing machine-readable final JSON result;
 - exits nonzero on any non-completed or unverified result.
 
 The entry point must be a thin interface over application use cases and work without Node, React, or a running FastAPI server. Approved Decision 6 provides the exact module and arguments. WU3A final documentation must include the actual tested PowerShell command; a test-only harness is not a substitute for the supported entry point.
@@ -183,6 +195,7 @@ The entry point must be a thin interface over application use cases and work wit
 
 - Positive/negative fixtures for album and track requests, version rejection, explicit project selection, safe relative paths, project/output containment, supported settings, unique identities, and immutable ordering.
 - Timeline/sample-count arithmetic, chapter formatting/eligibility/staleness, Unicode titles, and no guessed durations.
+- Progress/diagnostic schema fixtures, exact phase transitions, FFmpeg end-at-100 behavior, concurrent CLI-read/worker-write safety, private path-free diagnostics, and cleanup/diagnostic failure non-masking.
 - Application use-case tests with fake probe/encoder/repository/artifact ports.
 - Album/track plan validation, idempotent digest changes, source mutation, cancellation, retry, recovery, and collision behavior.
 - Portability tests using different temporary project roots, nested directories, spaces/Unicode, drive/root conventions where available, multiple channel-like layouts, a repository location unrelated to the album, and traversal/symlink/junction/reparse escape attempts.
@@ -193,6 +206,7 @@ The entry point must be a thin interface over application use cases and work wit
 - Generated 2–4 second PCM WAVs with distinguishable content and a generated image; no user music in automated CI.
 - At least a tiny multi-track album and one individual-track render through the real application entry point/use case.
 - Probe container, H.264/AAC codecs, `yuv420p`, dimensions, frame rate, audio presence, expected duration tolerance, provenance, and `+faststart` behavior where testable.
+- Assert actual FFprobe `color_space`, `color_transfer`, and `color_primaries` are all `bt709` on the pinned Windows FFmpeg/FFprobe 9.0.2 build and the Ubuntu gate.
 - Decode video and audio through EOF; verify album transition order and that the final track is present.
 - Verify chapter output against the derived timeline.
 - Exercise failure/cancel/recovery/promotion paths and prove no source mutation or false final.
@@ -221,7 +235,7 @@ Acceptance requires:
 9. Open the album MP4 in VLC or Windows Media Player; confirm image, audible ordered tracks, seeking near early/middle/late boundaries, resumption after seek, final-track completion, and clean termination.
 10. Record the human reviewer, date, player/version, result, and any observed defects. Automated evidence alone cannot mark WU3A accepted.
 
-The user corrected the album images. Read-only inspection on 2026-10-25 confirmed that `Echoes of Asia - video_background.png` is 1920×1080 and visibly says *Echoes of Asia*. The historical *Lanterns Across Asia* mismatch is resolved, but the implemented application must still validate the current manifest-selected file at acceptance time. This approval does not authorize WU3A to rename or alter source artwork.
+The user corrected the album images. Read-only inspection on 2026-10-25 confirmed that the current manifest-selected `video_background.png` is 1920×1080 and visibly says *Echoes of Asia*. The historical *Lanterns Across Asia* mismatch is resolved, but the implemented application must still validate the selected file at acceptance time. This approval does not authorize WU3A to rename or alter source artwork.
 
 ## 13. Acceptance gate
 
@@ -275,7 +289,7 @@ The export request contains only `contract_version`, `target`, and `profile_id`.
 
 The result requires `contract_version`, `job_id`, `attempt_id`, terminal `state`, normalized `target`, `request_digest`, ordered `artifacts`, `timeline` (album only), `warnings`, and timestamps. Every artifact records `kind`, project-relative `path`, SHA-256, byte size, verification state, and measured media properties where applicable. It contains no publishing prose or upload state.
 
-Compatibility: `manifest-v2.schema.json` remains the completed WU1 structural subset and is not renamed. `wrld-video-album/0.1-draft` receives an explicit diagnostic adapter only; it may map exact fields but must reject missing stable IDs, nonexistent paths, or unsupported settings rather than infer them. The current *Echoes of Asia* draft therefore requires an explicitly approved migration because it lacks stable IDs and references PNG names that do not exist. Unknown draft fields are preserved in the source and never silently dropped by a rewrite.
+Compatibility: `manifest-v2.schema.json` remains the completed WU1 structural subset and is not renamed. Historical `wrld-video-album/0.1-draft` inputs receive an explicit diagnostic adapter only; it may map exact fields but must reject missing stable IDs, nonexistent paths, or unsupported settings rather than infer them. The current *Echoes of Asia* source was manually migrated and validates as `wrld-video-album/1.0`; this does not authorize automatic migration or rewriting of another draft. Unknown draft fields are preserved in the source and never silently dropped by a rewrite.
 
 **Rationale:** separates portable project configuration, one immutable render request, and factual results while preserving WU1/WU2 contracts. **Affected:** Docs 03, 10, 14, 21, 28, 31, 32, and 38; schemas/fixtures belong to the subsequent implementation pass.
 
@@ -352,7 +366,7 @@ Optional `--ffmpeg-path` and `--ffprobe-path` override the existing verified dis
 
 ### Approval state
 
-All eight decisions are **APPROVED**. The contract-decision gate is closed. Generic WU3A implementation may proceed in a subsequent pass under the normal plan/report gate. Real *Echoes of Asia* rendering remains contingent on separately approved source-manifest preparation because the current draft lacks stable IDs and references nonexistent unprefixed artwork names; WU3A may reject that draft but must not silently repair it.
+All eight decisions are **APPROVED**. The contract-decision gate is closed and the current implementation candidate follows them. The separate Echoes source-manifest preparation gate is resolved by the user's manual migration and read-only validation. Real album/track rendering plus human review remain acceptance gates; the application must still reject and never silently repair invalid source manifests.
 
 ## 16. Required implementation sequence
 
@@ -361,6 +375,6 @@ All eight decisions are **APPROVED**. The contract-decision gate is closed. Gene
 3. **Phase 3 — renderer and lifecycle:** static-image H.264/AAC encoder behind ports; reuse job, admission, staging, verification, cancellation, and recovery; real synthetic integrations.
 4. **Phase 4 — headless interface:** approved CLI/programmatic adapter and ordinary-PowerShell documentation; no frontend dependency.
 5. **Phase 5 — regression and CI:** complete suites, Windows/Ubuntu media gates, fault injection, full decode, and independent lifecycle review.
-6. **Phase 6 — real album acceptance:** after separately approved source-manifest preparation, validate the corrected artwork, render *Echoes of Asia*, automate probe/decode/chapter checks, complete human playback review, and record evidence.
+6. **Phase 6 — real album acceptance:** using the manually migrated and schema-valid current source manifest, validate the corrected artwork, render *Echoes of Asia*, automate probe/decode/chapter checks, complete human playback review, and record evidence.
 
-Stop and report after each approved phase. Do not commit, push, or begin WU4 without separate authorization.
+Stop and report after each approved phase. Do not commit, push, or begin any successor unit without its separate authorization; Doc 39 now identifies WU3B as the next planned unit.

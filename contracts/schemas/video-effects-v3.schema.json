@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/video-effects-v3.schema.json",
+  "title": "WRLD Video Effects v3",
+  "type": "object", "additionalProperties": false,
+  "required": ["pan_zoom", "audio_bars", "player"],
+  "properties": {
+    "pan_zoom": {"$ref": "https://wrld.local/schemas/video-effects-v2.schema.json#/properties/pan_zoom"},
+    "audio_bars": {"$ref": "https://wrld.local/schemas/video-effects-v2.schema.json#/properties/audio_bars"},
+    "player": {"$ref": "https://wrld.local/schemas/player-overlay-v1.schema.json"}
+  }
+}

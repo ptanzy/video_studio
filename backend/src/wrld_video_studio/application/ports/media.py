@@ -26,6 +26,7 @@ class ProcessRunner(Protocol):
         cancel_event: Any = None,
         heartbeat: Any = None,
         progress_callback: Any = None,
+        working_directory: str | Path | None = None,
     ) -> ProcessExecution: ...
 
     def sanitize_diagnostic(self, text: str) -> str: ...
@@ -52,7 +53,14 @@ class JobRepository(Protocol):
 
 
 class ArtifactVerifier(Protocol):
-    def verify(self, path: Path, expected: Mapping[str, Any]) -> MediaProbe: ...
+    def verify(
+        self,
+        path: Path,
+        expected: Mapping[str, Any],
+        cancel_event: Any = None,
+        heartbeat: Any = None,
+        phase_callback: Any = None,
+    ) -> MediaProbe: ...
 
 
 class SyntheticEncoder(Protocol):
@@ -89,3 +97,11 @@ class ArtifactStore(Protocol):
     def cleanup_owned(self, job_id: str, attempt_id: str) -> None: ...
 
     def has_promotion_record(self, job_id: str, attempt_id: str, final: Path) -> bool: ...
+
+
+class RenderJobHandler(Protocol):
+    def supports(self, snapshot: RenderSnapshot) -> bool: ...
+
+    def execute(self, worker: Any, snapshot: RenderSnapshot, status: JobStatus, token: Any, started: float) -> tuple[RenderSnapshot, JobStatus]: ...
+
+    def reconcile(self, worker: Any, snapshot: RenderSnapshot, status: JobStatus) -> tuple[RenderSnapshot, JobStatus] | None: ...

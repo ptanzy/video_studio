@@ -231,7 +231,14 @@ class MediaStream:
     height: int | None = None
     frame_rate: float | None = None
     duration_seconds: float | None = None
+    duration_ts: int | None = None
+    time_base_numerator: int | None = None
+    time_base_denominator: int | None = None
     pixel_format: str | None = None
+    profile: str | None = None
+    color_space: str | None = None
+    color_transfer: str | None = None
+    color_primaries: str | None = None
 
 
 @dataclass(frozen=True)

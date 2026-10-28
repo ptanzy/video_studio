@@ -1,0 +1,34 @@
+{
+  "contract_version": "motion-preview-request/1.0",
+  "target": {"kind": "album"},
+  "profile_id": "youtube-1080p30-motion-v1",
+  "effects": {
+    "pan_zoom": {
+      "enabled": true,
+      "max_zoom": 1.04,
+      "path": "diagonal_down_right",
+      "cycle_seconds": 180.0,
+      "return_to_origin": true,
+      "return_duration_seconds": 5.0,
+      "easing": "smoothstep"
+    },
+    "audio_bars": {
+      "enabled": true,
+      "bar_count": 24,
+      "opacity": 0.65,
+      "placement": "bottom_center",
+      "rms_window_samples": 1920,
+      "attack_ms": 60.0,
+      "release_ms": 240.0
+    },
+    "track_progress": {
+      "enabled": true,
+      "style": "line",
+      "placement": "bottom",
+      "opacity": 0.8,
+      "thickness_px": 6,
+      "segment_count": 20
+    }
+  },
+  "excerpt": {"start_sample": 0, "sample_count": 240000}
+}

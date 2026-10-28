@@ -42,7 +42,11 @@ WaveSurfer instance is created once per mounted waveform component, disposed on 
 
 ## WU3A dependency note
 
-WU3A precedes frontend implementation and provides headless album/track validation, timeline/chapters, static MP4 export, and the album-project boundary with artifacts under project-local `output/`. WU4 consumes validation/timeline plus the existing WU3 still-preview API for Import/Review and owns the future project initialization/selection UX beneath configurable library roots, including room for selectable locations and multiple channels; it does not add render-job HTTP endpoints. WU6 finalizes the proposed render-job routes/payloads and connects the Render page to the WU3A application use cases. The browser must identify a server-approved project and must never submit an arbitrary local server path. Endpoint examples above remain proposals until their work-unit contract review.
+WU3A precedes frontend implementation and provides headless album/track validation, timeline/chapters, static MP4 export, the album-project boundary with artifacts under project-local `output/`, and durable `wrld-render-progress/1.0` attempt records. WU4 consumes validation/timeline plus the existing WU3 still-preview API for Import/Review and owns the future project initialization/selection UX beneath configurable library roots, including room for selectable locations and multiple channels; it does not add render-job HTTP endpoints or a second progress model. WU6 finalizes the proposed render-job routes/payloads and connects the Render page to the same WU3A job/progress/application services. The browser must identify a server-approved project and must never submit an arbitrary local server path. Endpoint examples above remain proposals until their work-unit contract review.
+
+## WU3B dependency note
+
+After Doc 39's exact contract approval, WU3B provides the headless v2 motion export and an application-level, bounded, private temporary MP4 preview use case. The illustrative `POST /api/v1/previews/motion` path above remains unapproved: WU4 must separately define its safe request/streaming adapter over the WU3B use case. WU4 exposes only approved effect fields and resolves complete immutable requests; WU6 submits those same requests through the eventual render-job API and consumes the existing job-progress model. Rendered track progress is video content, not browser job progress. WU7, not WU4–WU6, owns advanced layered/title-aware composition UI.
 
 
 ## v1.4 frontend modules

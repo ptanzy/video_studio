@@ -34,5 +34,9 @@ Read `AGENTS.md`, `docs/copilot/00_READ_FIRST.md` and all docs 01–26. Inspect 
 ## v1.7 strict anti-invention instruction
 Follow `AGENTS.md` and document 31. Do not implement Streamlit or copy legacy monolith. No undocumented defaults, invented API fields, emotion enums, placeholder approvals, color rules, upload functionality or distributed services. If ambiguous, return `BLOCKED DECISION` with source references and options; wait for approval. Treat examples as examples, not validation schemas.
 
-## v2.0 next-work-unit instruction
-WU1–WU3 are implemented history. Read Docs 32–38 and actual source/tests; implement no code until an exact WU3A plan and Doc 38 Section 15 decisions are approved. WU3A is a headless static-image album/track MP4 slice reusing the existing worker/process/admission/artifact lifecycle. It must finish with real *Echoes of Asia* automated verification and human playback review. Do not start WU4, add frontend code, copy legacy v2, construct an independent FFmpeg path, or invent schemas/settings/rounding/names/CLI syntax.
+## v2.1 current-work-unit instruction
+WU1–WU3 are implemented history. Read Docs 32–38 and actual source/tests. The WU3A plan and Doc 38 Section 15 decisions are approved and an implementation candidate is present; final WU3A acceptance still requires real *Echoes of Asia* album/track automated verification and human playback review. Do not start WU4, add frontend code, copy legacy v2, construct an independent FFmpeg path, or invent schemas/settings/rounding/names/CLI syntax.
+
+## v2.2 current-work-unit instruction
+
+Read Doc 39 after all earlier documents. The approved forward sequence is WU3B → WU4 → WU5 → WU6 → WU7 while WU3A acceptance remains independently pending. WU3B scope is approved, but Doc 39 Sections 5–10 contain final recommended contract details that require explicit user approval before any WU3B code or schema edit. Do not infer that approval, do not start WU4/WU7, and do not use WU3B evidence to close WU3A.

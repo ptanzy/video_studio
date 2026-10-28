@@ -1,4 +1,6 @@
 ## Unreleased — WU3 final remediation
+- Reconciles crash-interrupted export attempts before request-digest retry selection and makes synchronous CLI execution claim the exact submitted job/attempt, preserving historical diagnostics while preventing an older queued job from being reported as the requested export.
+- Removes the Windows process-start/Job Object assignment race by launching children suspended, assigning the kill-on-close Job Object through the owned process handle, and resuming only after ownership succeeds. Structured internal diagnostics now identify the failing Win32 stage/code without weakening the public `PROCESS_OWNERSHIP_FAILED` contract.
 - Tightens v4 result schema/runtime parity, adds deterministic Windows destination/staging preflight, and shortens application-owned staging/diagnostic keys without changing public output names.
 - Bounds motion-preview PCM work to intersecting excerpt windows plus finite RMS analysis margin, caps distinct running/queued preview identities at four, preserves same-flight sharing, and adds conservative lock-based abandoned-preview reconciliation.
 - Enforces newly approved 4.5:1 ordinary and 3:1 large-text contrast policy against the composited footer; derived colors may be corrected while noncompliant manual overrides are rejected.

@@ -15,6 +15,7 @@ from wrld_video_studio.application.video_export_worker import VideoExportJobHand
 from wrld_video_studio.domain.jobs import MediaProbe, MediaStream
 from wrld_video_studio.domain.jobs import JobState
 from wrld_video_studio.domain.media_errors import IndeterminateMediaCommitError, MediaInfrastructureError
+from wrld_video_studio.domain.render_progress import RenderPhase, RenderProgress
 from wrld_video_studio.domain.video_export import (
     ExportTarget,
     VideoExportRequest,
@@ -44,6 +45,7 @@ from wrld_video_studio.domain.video_export_v3 import (
 )
 from wrld_video_studio.infrastructure.artifact_store import FilesystemArtifactStore
 from wrld_video_studio.infrastructure.artifact_verifier import FFmpegArtifactVerifier
+from wrld_video_studio.infrastructure.artwork_theme import FFmpegArtworkThemeResolver
 from wrld_video_studio.infrastructure.job_repository import JsonJobRepository
 from wrld_video_studio.infrastructure.ffprobe_adapter import FFprobeAdapter
 from wrld_video_studio.infrastructure.project_sources import FilesystemVideoProjectLoader
@@ -794,11 +796,96 @@ def test_interrupted_report_publication_reconciles_promoted_artifacts(tmp_path, 
     assert (project / "output" / "metadata" / "render_report.json").is_file()
 
 
+def test_crash_interrupted_export_is_reconciled_retried_and_exact_attempt_runs(
+    tmp_path, schema_dir
+):
+    state = tmp_path / "state"
+    progress_store = JsonRenderProgressStore(
+        state / "progress", schema_dir / "render-progress-v1.schema.json"
+    )
+    diagnostic_store = JsonRenderDiagnosticStore(
+        state / "diagnostics", schema_dir / "render-diagnostic-v1.schema.json"
+    )
+    project, repository, _reports, results, worker, exports = _services(
+        tmp_path,
+        schema_dir,
+        progress_store=progress_store,
+        diagnostic_store=diagnostic_store,
+    )
+    request = VideoExportRequest(ExportTarget("album"))
+    interrupted = exports.submit(project, request)
+    running = interrupted.status.transition(JobState.RUNNING)
+    repository.update_status(running, interrupted.status.revision)
+    progress_store.save(
+        RenderProgress(
+            job_id=interrupted.snapshot.job_id,
+            attempt_id=interrupted.snapshot.attempt_id,
+            phase=RenderPhase.ENCODING,
+            phase_progress_percent=0.0,
+            current_track=None,
+            total_tracks=12,
+            processed_duration_seconds=0.0,
+            total_duration_seconds=None,
+            elapsed_seconds=853.2,
+            eta_seconds=None,
+            last_progress_at="2026-10-28T16:50:55Z",
+        )
+    )
+
+    recovered = worker.reconcile()
+    retried = exports.submit(project, request)
+    completed = worker.run_next(retried.snapshot.job_id, retried.snapshot.attempt_id)
+
+    assert recovered[0][0].attempt_id == interrupted.snapshot.attempt_id
+    assert recovered[0][1].status is JobState.FAILED
+    assert recovered[0][1].error == {
+        "code": "RECOVERABLE_INTERRUPTION",
+        "message": "RECOVERABLE_INTERRUPTION",
+    }
+    assert retried.snapshot.job_id == interrupted.snapshot.job_id
+    assert retried.snapshot.attempt_id != interrupted.snapshot.attempt_id
+    assert retried.snapshot.request_digest == interrupted.snapshot.request_digest
+    assert retried.status.status is JobState.QUEUED
+    assert completed is not None
+    assert completed[0].attempt_id == retried.snapshot.attempt_id
+    assert completed[1].status is JobState.COMPLETED
+    assert results.load(retried.snapshot.job_id, retried.snapshot.attempt_id) is not None
+    historical = repository.get_attempt(
+        interrupted.snapshot.job_id, interrupted.snapshot.attempt_id
+    )[1]
+    assert historical.status is JobState.FAILED
+    historical_progress = progress_store.load(
+        interrupted.snapshot.job_id, interrupted.snapshot.attempt_id
+    )
+    assert historical_progress is not None
+    assert historical_progress.failure_phase is RenderPhase.ENCODING
+    assert historical_progress.diagnostic_reference is not None
+    assert (state / historical_progress.diagnostic_reference).is_file()
+    assert len(repository.attempts(interrupted.snapshot.job_id)) == 2
+
+
 def test_real_echoes_manifest_validates_against_implemented_schema(schema_dir):
     project = Path(r"C:\Users\ptanz\job_search\WORLD_MUSIC\WRLD-FI\Albums\Echoes of Asia - Album 1")
     if not project.is_dir():
         pytest.skip("Local acceptance album is unavailable")
-    loaded = FilesystemVideoProjectLoader(schema_dir / "video-manifest-v1.schema.json").load(project)
+    runner = SubprocessRunner()
+    configured = {}
+    if os.environ.get("WRLD_FFMPEG_PATH") and os.environ.get("WRLD_FFPROBE_PATH"):
+        configured = {
+            "ffmpeg": Path(os.environ["WRLD_FFMPEG_PATH"]),
+            "ffprobe": Path(os.environ["WRLD_FFPROBE_PATH"]),
+        }
+    tools = MediaToolchain(runner, configured)
+    try:
+        tools.resolve("ffmpeg")
+        tools.resolve("ffprobe")
+    except MediaInfrastructureError:
+        pytest.skip("Configured FFmpeg/FFprobe are unavailable for the real manifest")
+    loaded = FilesystemVideoProjectLoader(
+        tuple(schema_dir / f"video-manifest-v{version}.schema.json" for version in range(1, 5)),
+        prober=FFprobeAdapter(tools, runner),
+        theme_resolver=FFmpegArtworkThemeResolver(tools, runner),
+    ).load(project)
     assert loaded.manifest.album.id == "wrld-fi-album-01"
     assert len(loaded.manifest.tracks) == 12
     assert loaded.manifest.background == "video_background.png"

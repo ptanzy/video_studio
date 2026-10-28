@@ -455,6 +455,38 @@ def test_run_next_reconciles_stale_attempt_before_claiming_queued_job(tmp_path, 
     assert result[1].status is JobState.COMPLETED
 
 
+def test_run_next_target_executes_submitted_attempt_not_older_queued_job(tmp_path, schema_dir):
+    source_root, repository, _artifacts, worker, jobs = setup(tmp_path, schema_dir)
+    older, _ = jobs.submit(
+        make_request("proof/older.mp4"), source_root, "synthetic-proof-1"
+    )
+    target, _ = jobs.submit(
+        make_request("proof/target.mp4"),
+        source_root,
+        "synthetic-proof-1",
+        force=True,
+    )
+
+    result = worker.run_next(target.job_id, target.attempt_id)
+
+    assert result is not None
+    assert (result[0].job_id, result[0].attempt_id) == (
+        target.job_id,
+        target.attempt_id,
+    )
+    assert result[1].status is JobState.COMPLETED
+    assert repository.get_attempt(older.job_id, older.attempt_id)[1].status is JobState.QUEUED
+
+
+def test_run_next_target_requires_complete_identity(tmp_path, schema_dir):
+    _source_root, _repository, _artifacts, worker, _jobs = setup(tmp_path, schema_dir)
+
+    with pytest.raises(MediaInfrastructureError) as caught:
+        worker.run_next("job-only", None)
+
+    assert caught.value.code == "INVALID_JOB"
+
+
 def test_reconcile_is_rejected_while_worker_is_active(tmp_path, schema_dir):
     started = threading.Event()
     source_root, repository, artifacts, _worker, jobs = setup(

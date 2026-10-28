@@ -179,7 +179,7 @@ def run_video_export(args: argparse.Namespace, *, state_root: Path | None = None
             request = resolve_motion_export_request(loaded.manifest, target)
         else:
             request = VideoExportRequest(target, args.profile)
-        submitted = VideoExports(
+        exports = VideoExports(
             loader,
             MediaJobs(repository),
             path_validator=VideoExportPathPreflight(
@@ -187,7 +187,8 @@ def run_video_export(args: argparse.Namespace, *, state_root: Path | None = None
                 tuple(tools.resolve(name).path for name in ("ffmpeg", "ffprobe")),
             ),
             tool_identity=tool_identity,
-        ).submit(project, request)
+        )
+        submitted = _submit_after_reconciliation(worker, exports, project, request)
         if submitted.status.status.value == "completed":
             result = reports.matching_result(submitted.snapshot.request_digest)
         else:
@@ -215,6 +216,18 @@ def run_video_export(args: argparse.Namespace, *, state_root: Path | None = None
         return _error("PROCESS_CANCELLED", "Video export was cancelled.")
 
 
+def _submit_after_reconciliation(
+    worker: RenderWorker,
+    exports: VideoExports,
+    project: Path,
+    request: Any,
+) -> Any:
+    # Reconcile crash-interrupted attempts before digest deduplication decides
+    # whether this identical request needs a new retry attempt.
+    worker.reconcile()
+    return exports.submit(project, request)
+
+
 def _run_worker(
     worker: RenderWorker,
     job_id: str,
@@ -227,7 +240,7 @@ def _run_worker(
 
     def target() -> None:
         try:
-            box.append(worker.run_next())
+            box.append(worker.run_next(job_id, attempt_id))
         except BaseException as error:
             errors.append(error)
 
@@ -291,8 +304,18 @@ def _run_worker(
             print(f"Render outcome: {recovered[1].status.value}", file=sys.stderr, flush=True)
             return recovered
         raise MediaInfrastructureError("WORKER_FAILED", "The render worker did not execute the job.")
-    print(f"Render outcome: {box[0][1].status.value}", file=sys.stderr, flush=True)
-    return box[0]
+    outcome = box[0]
+    if (
+        outcome[0].job_id != job_id
+        or outcome[0].attempt_id != attempt_id
+        or outcome[1].job_id != job_id
+        or outcome[1].attempt_id != attempt_id
+    ):
+        raise MediaInfrastructureError(
+            "WORKER_FAILED", "The render worker returned a different job attempt."
+        )
+    print(f"Render outcome: {outcome[1].status.value}", file=sys.stderr, flush=True)
+    return outcome
 
 
 def _format_progress(progress: Any) -> str:

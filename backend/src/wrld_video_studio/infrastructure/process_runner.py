@@ -12,6 +12,22 @@ from wrld_video_studio.domain.jobs import ProcessExecution
 from wrld_video_studio.domain.media_errors import MediaInfrastructureError
 
 
+class _WindowsOwnershipFailure(RuntimeError):
+    def __init__(
+        self,
+        stage: str,
+        error: BaseException,
+        *,
+        process_exited: bool | None,
+        already_in_job: bool | None,
+    ) -> None:
+        super().__init__(f"Windows process ownership failed during {stage}")
+        self.stage = stage
+        self.windows_error = _windows_error_code(error)
+        self.process_exited = process_exited
+        self.already_in_job = already_in_job
+
+
 class _BoundedPipe:
     def __init__(self, stream: Any, limit: int, keep_tail: bool, on_data: Any = None) -> None:
         self.stream = stream
@@ -104,7 +120,14 @@ class SubprocessRunner:
                 )
             kwargs["cwd"] = str(directory)
         if os.name == "nt":
-            kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+            import win32con
+
+            # A child can otherwise exit between CreateProcess and Job Object
+            # assignment.  Starting suspended makes ownership atomic from the
+            # application's perspective: no child code runs before assignment.
+            kwargs["creationflags"] = (
+                subprocess.CREATE_NEW_PROCESS_GROUP | win32con.CREATE_SUSPENDED
+            )
         else:
             kwargs["start_new_session"] = True
         try:
@@ -113,10 +136,19 @@ class SubprocessRunner:
             raise MediaInfrastructureError(
                 "PROCESS_START_FAILED", "Could not start the requested media process."
             ) from error
+        windows_job = None
         try:
-            windows_job = self._create_windows_job(process) if os.name == "nt" else None
+            if os.name == "nt":
+                windows_job = self._create_windows_job(process)
+                self._resume_windows_process(process)
+            else:
+                windows_job = None
         except Exception as error:
-            self._taskkill_tree(process.pid)
+            if windows_job is not None:
+                self._close_windows_job(windows_job)
+                windows_job = None
+            else:
+                self._taskkill_tree(process.pid)
             try:
                 process.wait(timeout=max(self.grace_seconds, 1.0))
             except subprocess.TimeoutExpired:
@@ -132,7 +164,9 @@ class SubprocessRunner:
                         "PROCESS_REAP_FAILED", "Media process could not be reaped after ownership setup failed."
                     ) from reap_error
             raise MediaInfrastructureError(
-                "PROCESS_OWNERSHIP_FAILED", "Could not establish ownership of the Windows process tree."
+                "PROCESS_OWNERSHIP_FAILED",
+                "Could not establish ownership of the Windows process tree.",
+                self._ownership_failure_details(error, process),
             ) from error
 
         assert process.stdout is not None and process.stderr is not None
@@ -282,32 +316,164 @@ class SubprocessRunner:
     @staticmethod
     def _create_windows_job(process: subprocess.Popen[Any]) -> Any:
         import win32api
-        import win32con
         import win32job
 
-        job = win32job.CreateJobObject(None, "")
         try:
-            limits = win32job.QueryInformationJobObject(
-                job, win32job.JobObjectExtendedLimitInformation
-            )
+            job = win32job.CreateJobObject(None, "")
+        except Exception as error:
+            raise SubprocessRunner._windows_ownership_failure(
+                "create_job", error, process
+            ) from error
+        try:
+            try:
+                limits = win32job.QueryInformationJobObject(
+                    job, win32job.JobObjectExtendedLimitInformation
+                )
+            except Exception as error:
+                raise SubprocessRunner._windows_ownership_failure(
+                    "query_job_limits", error, process
+                ) from error
             basic = limits["BasicLimitInformation"]
             basic["LimitFlags"] |= win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-            win32job.SetInformationJobObject(
-                job, win32job.JobObjectExtendedLimitInformation, limits
-            )
-            process_handle = win32api.OpenProcess(
-                win32con.PROCESS_SET_QUOTA | win32con.PROCESS_TERMINATE,
-                False,
-                process.pid,
-            )
             try:
-                win32job.AssignProcessToJobObject(job, process_handle)
-            finally:
-                win32api.CloseHandle(process_handle)
+                win32job.SetInformationJobObject(
+                    job, win32job.JobObjectExtendedLimitInformation, limits
+                )
+            except Exception as error:
+                raise SubprocessRunner._windows_ownership_failure(
+                    "configure_job_limits", error, process
+                ) from error
+            try:
+                # Popen owns this process handle until the process is reaped;
+                # using it avoids a second permission-sensitive OpenProcess.
+                win32job.AssignProcessToJobObject(job, process._handle)
+            except Exception as error:
+                raise SubprocessRunner._windows_ownership_failure(
+                    "assign_process_to_job", error, process
+                ) from error
             return job
         except Exception:
             win32api.CloseHandle(job)
             raise
+
+    @staticmethod
+    def _resume_windows_process(process: subprocess.Popen[Any]) -> None:
+        import ctypes
+        from ctypes import wintypes
+
+        import win32api
+        import win32con
+        import win32process
+
+        class THREADENTRY32(ctypes.Structure):
+            _fields_ = [
+                ("dwSize", wintypes.DWORD),
+                ("cntUsage", wintypes.DWORD),
+                ("th32ThreadID", wintypes.DWORD),
+                ("th32OwnerProcessID", wintypes.DWORD),
+                ("tpBasePri", wintypes.LONG),
+                ("tpDeltaPri", wintypes.LONG),
+                ("dwFlags", wintypes.DWORD),
+            ]
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+        kernel32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+        kernel32.Thread32First.argtypes = [wintypes.HANDLE, ctypes.POINTER(THREADENTRY32)]
+        kernel32.Thread32First.restype = wintypes.BOOL
+        kernel32.Thread32Next.argtypes = [wintypes.HANDLE, ctypes.POINTER(THREADENTRY32)]
+        kernel32.Thread32Next.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+
+        snapshot = kernel32.CreateToolhelp32Snapshot(0x00000004, 0)  # TH32CS_SNAPTHREAD
+        if snapshot == wintypes.HANDLE(-1).value:
+            error = ctypes.WinError(ctypes.get_last_error())
+            raise SubprocessRunner._windows_ownership_failure(
+                "snapshot_threads", error, process
+            ) from error
+        thread_id: int | None = None
+        try:
+            entry = THREADENTRY32()
+            entry.dwSize = ctypes.sizeof(entry)
+            more = bool(kernel32.Thread32First(snapshot, ctypes.byref(entry)))
+            while more:
+                if entry.th32OwnerProcessID == process.pid:
+                    thread_id = int(entry.th32ThreadID)
+                    break
+                more = bool(kernel32.Thread32Next(snapshot, ctypes.byref(entry)))
+        finally:
+            kernel32.CloseHandle(snapshot)
+        if thread_id is None:
+            error = OSError("the suspended process primary thread was not found")
+            raise SubprocessRunner._windows_ownership_failure(
+                "find_primary_thread", error, process
+            ) from error
+        try:
+            thread = win32api.OpenThread(
+                win32con.THREAD_SUSPEND_RESUME, False, thread_id
+            )
+        except Exception as error:
+            raise SubprocessRunner._windows_ownership_failure(
+                "open_primary_thread", error, process
+            ) from error
+        try:
+            try:
+                previous_count = win32process.ResumeThread(thread)
+            except Exception as error:
+                raise SubprocessRunner._windows_ownership_failure(
+                    "resume_primary_thread", error, process
+                ) from error
+            if previous_count != 1:
+                error = RuntimeError(
+                    f"unexpected primary-thread suspend count: {previous_count}"
+                )
+                raise SubprocessRunner._windows_ownership_failure(
+                    "resume_primary_thread", error, process
+                ) from error
+        finally:
+            win32api.CloseHandle(thread)
+
+    @staticmethod
+    def _windows_ownership_failure(
+        stage: str, error: BaseException, process: subprocess.Popen[Any]
+    ) -> _WindowsOwnershipFailure:
+        import win32job
+
+        try:
+            process_exited: bool | None = process.poll() is not None
+        except Exception:
+            process_exited = None
+        try:
+            already_in_job: bool | None = bool(
+                win32job.IsProcessInJob(process._handle, None)
+            )
+        except Exception:
+            already_in_job = None
+        return _WindowsOwnershipFailure(
+            stage,
+            error,
+            process_exited=process_exited,
+            already_in_job=already_in_job,
+        )
+
+    @staticmethod
+    def _ownership_failure_details(
+        error: BaseException, process: subprocess.Popen[Any]
+    ) -> dict[str, Any]:
+        if isinstance(error, _WindowsOwnershipFailure):
+            return {
+                "stage": error.stage,
+                "windows_error": error.windows_error,
+                "process_exited": error.process_exited,
+                "already_in_job": error.already_in_job,
+            }
+        return {
+            "stage": "unexpected_ownership_error",
+            "windows_error": _windows_error_code(error),
+            "process_exited": process.poll() is not None,
+            "already_in_job": None,
+        }
 
     @staticmethod
     def _close_windows_job(job: Any) -> None:
@@ -327,3 +493,11 @@ class SubprocessRunner:
             timeout=5.0,
             check=False,
         )
+
+
+def _windows_error_code(error: BaseException) -> int | None:
+    value = getattr(error, "winerror", None)
+    if isinstance(value, int):
+        return value
+    args = getattr(error, "args", ())
+    return args[0] if args and isinstance(args[0], int) else None

@@ -207,21 +207,8 @@ class JsonJobRepository:
 
     def claim_next(self) -> tuple[RenderSnapshot, JobStatus] | None:
         with self._root_lock, self._writer_guard():
-            for job_dir in self.root.iterdir():
-                attempts_dir = job_dir / "attempts"
-                if not job_dir.is_dir() or not attempts_dir.is_dir():
-                    continue
-                for attempt_dir in attempts_dir.iterdir():
-                    status_path = attempt_dir / "status.json"
-                    if not status_path.is_file():
-                        continue
-                    current = self._read_json(status_path)
-                    if current.get("status") in {
-                        JobState.RUNNING.value,
-                        JobState.VALIDATING.value,
-                        JobState.CANCEL_REQUESTED.value,
-                    }:
-                        return None
+            if self._has_active_attempt_locked():
+                return None
             queued: list[tuple[RenderSnapshot, JobStatus, Path]] = []
             for job_dir in self.root.iterdir():
                 attempts_dir = job_dir / "attempts"
@@ -240,6 +227,40 @@ class JsonJobRepository:
                 self._write_status(status_path, running)
                 return snapshot, running
         return None
+
+    def claim_attempt(
+        self, job_id: str, attempt_id: str
+    ) -> tuple[RenderSnapshot, JobStatus] | None:
+        with self._root_lock, self._writer_guard():
+            if self._has_active_attempt_locked():
+                return None
+            snapshot_path, status_path = self._attempt_paths(job_id, attempt_id)
+            if not snapshot_path.is_file() or not status_path.is_file():
+                raise MediaInfrastructureError("JOB_NOT_FOUND", "Job attempt does not exist.")
+            snapshot, status = self._read_pair(snapshot_path, status_path)
+            if status.status is not JobState.QUEUED:
+                return None
+            running = status.transition(JobState.RUNNING)
+            self._write_status(status_path, running)
+            return snapshot, running
+
+    def _has_active_attempt_locked(self) -> bool:
+        for job_dir in self.root.iterdir():
+            attempts_dir = job_dir / "attempts"
+            if not job_dir.is_dir() or not attempts_dir.is_dir():
+                continue
+            for attempt_dir in attempts_dir.iterdir():
+                status_path = attempt_dir / "status.json"
+                if not status_path.is_file():
+                    continue
+                current = self._read_json(status_path)
+                if current.get("status") in {
+                    JobState.RUNNING.value,
+                    JobState.VALIDATING.value,
+                    JobState.CANCEL_REQUESTED.value,
+                }:
+                    return True
+        return False
 
     def _write_status(self, status_path: Path, status: JobStatus) -> None:
         self._validate(status.to_dict(), self.status_validator, "status")

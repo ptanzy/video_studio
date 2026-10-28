@@ -201,7 +201,15 @@ class RenderWorker:
         self._cancel_events: dict[tuple[str, str], threading.Event] = {}
         self._startup_reconciled = False
 
-    def run_next(self) -> tuple[RenderSnapshot, JobStatus] | None:
+    def run_next(
+        self,
+        job_id: str | None = None,
+        attempt_id: str | None = None,
+    ) -> tuple[RenderSnapshot, JobStatus] | None:
+        if (job_id is None) != (attempt_id is None):
+            raise MediaInfrastructureError(
+                "INVALID_JOB", "Targeted execution requires both job and attempt identity."
+            )
         if not self._lock.acquire(blocking=False):
             return None
         try:
@@ -209,7 +217,13 @@ class RenderWorker:
                 if not self._startup_reconciled:
                     self._reconcile_locked()
                     self._startup_reconciled = True
-                claimed = self.repository.claim_next()
+                if job_id is not None:
+                    assert attempt_id is not None
+                claimed = (
+                    self.repository.claim_next()
+                    if job_id is None
+                    else self.repository.claim_attempt(job_id, attempt_id)
+                )
                 if claimed is None:
                     return None
                 snapshot, running = claimed

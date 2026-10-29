@@ -35,6 +35,7 @@ from wrld_video_studio.domain.video_export import (
     TimelineEntry,
 )
 from wrld_video_studio.domain.visual_refinement import (
+    GLOW_PADDING_PX,
     OUTPUT_HEIGHT as REFINED_OUTPUT_HEIGHT,
     PROGRESS_WIDTH as REFINED_PROGRESS_WIDTH,
     SAFE_MARGIN as REFINED_SAFE_MARGIN,
@@ -57,6 +58,8 @@ class EffectControlPlan:
     filters: tuple[str, ...]
     command_count: int
     frame_count: int
+    bar_control_path: Path | None = None
+    bar_control_width: int = 0
 
 
 class VideoEffectControlBuilder:
@@ -76,6 +79,7 @@ class VideoEffectControlBuilder:
         progress_width: int | None = None,
         progress_color: str | None = None,
         pcm_windows: tuple[tuple[int, int], ...] | None = None,
+        compact_player_bars: bool = False,
     ) -> EffectControlPlan:
         bars = effects.audio_bars
         progress = effects.track_progress
@@ -103,6 +107,16 @@ class VideoEffectControlBuilder:
         frame_count = output_frame_count(selected_samples)
         filters = self._filters(effects)
         command_count = 0
+        bar_control_path = (
+            destination.with_suffix(".bars.gray16")
+            if compact_player_bars and isinstance(effects, VideoEffectsV3) and bars.enabled
+            else None
+        )
+        bar_control_width = (
+            bars.zone_width_px + 2 * GLOW_PADDING_PX
+            if bar_control_path is not None
+            else 0
+        )
         destination.parent.mkdir(parents=True, exist_ok=True)
         try:
             with ExitStack() as stack:
@@ -113,6 +127,11 @@ class VideoEffectControlBuilder:
                         "INVALID_RENDER_PLAN", "Effect-control PCM windows are inconsistent."
                     )
                 self._validate_pcm(pcm_paths, timeline, windows)
+                bar_control = (
+                    stack.enter_context(bar_control_path.open("wb"))
+                    if bar_control_path is not None
+                    else None
+                )
                 with destination.open("w", encoding="ascii", newline="\n") as output:
                     previous_heights = (2,) * bars.bar_count
                     previous_amplitude = 0.0
@@ -196,11 +215,14 @@ class VideoEffectControlBuilder:
                                 )
                             else:
                                 heights = bar_heights(previous_amplitude, bars.bar_count)
-                            for index, (old, new) in enumerate(
-                                zip(previous_heights, heights, strict=True)
-                            ):
-                                if (is_excerpt and frame_index == 0) or old != new:
-                                    commands.append(f"drawbox@wrld_bar_{index:02d} h {new}")
+                            if bar_control is not None:
+                                bar_control.write(self._player_bar_control_row(bars, heights))
+                            else:
+                                for index, (old, new) in enumerate(
+                                    zip(previous_heights, heights, strict=True)
+                                ):
+                                    if (is_excerpt and frame_index == 0) or old != new:
+                                        commands.append(f"drawbox@wrld_bar_{index:02d} h {new}")
                             previous_heights = heights
                         if progress.enabled:
                             value = (
@@ -259,7 +281,39 @@ class VideoEffectControlBuilder:
             raise MediaInfrastructureError(
                 "STORAGE_ERROR", "Could not build the attempt-owned effect control stream."
             ) from error
-        return EffectControlPlan(filters, command_count, frame_count)
+        return EffectControlPlan(
+            filters,
+            command_count,
+            frame_count,
+            bar_control_path,
+            bar_control_width,
+        )
+
+    @staticmethod
+    def _player_bar_control_row(bars: Any, heights: tuple[int, ...]) -> bytes:
+        start_x, _zone_y, bar_width, _occupied, zone_x = refined_bar_layout(
+            bars.bar_count,
+            bars.placement,
+            bars.zone_width_px,
+            bars.zone_height_px,
+            bars.gap_px,
+            bars.horizontal_offset_px,
+            bars.bottom_margin_px,
+        )
+        if bars.zone_height_px > 65_535 or any(height < 0 or height > 65_535 for height in heights):
+            raise MediaInfrastructureError(
+                "INVALID_RENDER_PLAN",
+                "Player bar geometry exceeds the compact control-stream range.",
+            )
+        width = bars.zone_width_px + 2 * GLOW_PADDING_PX
+        local_start = start_x - zone_x + GLOW_PADDING_PX
+        row = array("H", [0]) * width
+        for index, height in enumerate(heights):
+            left = local_start + index * (bar_width + bars.gap_px)
+            row[left : left + bar_width] = array("H", [height]) * bar_width
+        if sys.byteorder != "little":
+            row.byteswap()
+        return row.tobytes()
 
     @staticmethod
     def _validate_pcm(

@@ -6,6 +6,7 @@ from array import array
 import pytest
 
 from wrld_video_studio.domain.media_errors import MediaInfrastructureError
+from wrld_video_studio.domain.player_overlay import FontSettings, PlayerOverlaySettings
 from wrld_video_studio.domain.video_effects import (
     AudioBarsSettings,
     TrackProgressSettings,
@@ -17,6 +18,7 @@ from wrld_video_studio.domain.video_effects_v2 import (
     VideoEffectsV2,
 )
 from wrld_video_studio.domain.video_export import TimelineEntry
+from wrld_video_studio.domain.video_effects_v3 import VideoEffectsV3
 from wrld_video_studio.infrastructure.video_effect_controls import (
     VideoEffectControlBuilder,
 )
@@ -306,4 +308,28 @@ def test_refined_one_minute_organic_control_file_remains_linear_and_bounded(tmp_
     assert plan.frame_count == 1_800
     assert plan.command_count <= plan.frame_count * 25
     assert destination.stat().st_size < 5_000_000
+
+
+def test_player_full_album_uses_compact_bar_frames_and_bounded_sendcmd(tmp_path):
+    pcm = tmp_path / "album.pcm"
+    sample_count = 2_196 * 48_000
+    with pcm.open("wb") as stream:
+        stream.truncate(sample_count * 4)
+    destination = tmp_path / "album.sendcmd"
+    plan = VideoEffectControlBuilder().build(
+        (pcm,),
+        (TimelineEntry("album", 1, "Album", 0, sample_count),),
+        VideoEffectsV3(player=PlayerOverlaySettings(font=FontSettings("fonts/ui.ttf"))),
+        destination,
+        progress_width=1_576,
+        progress_color="#FFFFFF",
+        compact_player_bars=True,
+    )
+    assert plan.frame_count == 65_880
+    assert plan.bar_control_path == destination.with_suffix(".bars.gray16")
+    assert plan.bar_control_width == 972
+    assert plan.bar_control_path.stat().st_size == plan.frame_count * plan.bar_control_width * 2
+    assert plan.command_count <= 1_578
+    assert destination.stat().st_size < 200_000
+    assert "wrld_bar" not in destination.read_text(encoding="ascii")
 

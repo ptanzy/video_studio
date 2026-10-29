@@ -1,4 +1,6 @@
 ## Unreleased — WU3 final remediation
+
+- Replaces Phase D's full-duration per-bar `sendcmd` list with a compact one-row-per-frame bar control stream, preventing FFmpeg 9.0.2 from stalling before its first frame while preserving the exact RMS heights, player composition, glow, progress, and output contract.
 - Reconciles crash-interrupted export attempts before request-digest retry selection and makes synchronous CLI execution claim the exact submitted job/attempt, preserving historical diagnostics while preventing an older queued job from being reported as the requested export.
 - Removes the Windows process-start/Job Object assignment race by launching children suspended, assigning the kill-on-close Job Object through the owned process handle, and resuming only after ownership succeeds. Structured internal diagnostics now identify the failing Win32 stage/code without weakening the public `PROCESS_OWNERSHIP_FAILED` contract.
 - Tightens v4 result schema/runtime parity, adds deterministic Windows destination/staging preflight, and shortens application-owned staging/diagnostic keys without changing public output names.

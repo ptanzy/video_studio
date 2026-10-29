@@ -271,6 +271,9 @@ class StaticVideoExportRenderer:
                     else None
                 ),
                 pcm_windows=tuple(pcm_windows) if bounded_preview else None,
+                compact_player_bars=isinstance(
+                    plan, (PlayerVideoExportPlan, PlayerMotionPreviewPlan)
+                ),
                 **control_options,
             )
         try:
@@ -328,6 +331,12 @@ class StaticVideoExportRenderer:
         args.extend([
             "-f", "s16le", "-ar", "48000", "-ac", "2", "-i", str(combined_pcm),
         ])
+        if effect_control.bar_control_path is not None:
+            args.extend([
+                "-f", "rawvideo", "-pixel_format", "gray16le", "-video_size",
+                f"{effect_control.bar_control_width}x1", "-framerate", "30",
+                "-i", str(effect_control.bar_control_path),
+            ])
         if player_overlays:
             if font_path is None:
                 raise MediaInfrastructureError("INVALID_RENDER_PLAN", "Player font staging is unavailable.")
@@ -512,7 +521,7 @@ class StaticVideoExportRenderer:
                 )
             command_path = StaticVideoExportRenderer._filter_path(effect_control_path)
             sendcmd = f",sendcmd=filename='{command_path}'"
-            if not effects.audio_bars.enabled:
+            if not effects.audio_bars.enabled or effect_control.bar_control_path is not None:
                 base += sendcmd
         graph = [base + "[base]"]
         current = "base"
@@ -681,15 +690,25 @@ class StaticVideoExportRenderer:
             layer_height = bars.zone_height_px + 2 * padding
             local_start = start_x - layout.visualizer.x + padding
             zone_bottom = padding + bars.zone_height_px
-            draw = f"color=c=black@0.0:s={layer_width}x{layer_height}:r=30:d={duration:.9f},format=rgba" + sendcmd
-            for index in range(bars.bar_count):
-                draw += (
-                    f",drawbox@wrld_bar_{index:02d}=x={local_start + index * (bar_width + bars.gap_px)}:"
-                    f"y={zone_bottom}-h:w={bar_width}:h=2:color=white@1.0:t=fill:replace=1"
-                )
-            if bars.glow.enabled and bars.glow.intensity > 0:
+            if effect_control.bar_control_path is not None:
                 graph.extend([
-                    draw + "[bar_mask]",
+                    f"[2:v]scale={layer_width}:{layer_height}:flags=neighbor,"
+                    f"geq=lum='if(eq(p(X,Y),0),0,if(between(Y,{zone_bottom}-p(X,Y),{zone_bottom - 1}),255,0))'[bar_alpha]",
+                    f"color=c=white:s={layer_width}x{layer_height}:r=30:d={duration:.9f},format=rgba[bar_white]",
+                    "[bar_white][bar_alpha]alphamerge[bar_mask]",
+                ])
+                draw = ""
+            else:
+                draw = f"color=c=black@0.0:s={layer_width}x{layer_height}:r=30:d={duration:.9f},format=rgba" + sendcmd
+                for index in range(bars.bar_count):
+                    draw += (
+                        f",drawbox@wrld_bar_{index:02d}=x={local_start + index * (bar_width + bars.gap_px)}:"
+                        f"y={zone_bottom}-h:w={bar_width}:h=2:color=white@1.0:t=fill:replace=1"
+                    )
+            if bars.glow.enabled and bars.glow.intensity > 0:
+                if draw:
+                    graph.append(draw + "[bar_mask]")
+                graph.extend([
                     "[bar_mask]split=2[glow_mask][crisp_mask]",
                     "[glow_mask]" + StaticVideoExportRenderer._color_matrix(
                         theme.visualizer, bars.opacity * bars.glow.intensity * 0.60
@@ -700,7 +719,11 @@ class StaticVideoExportRenderer:
                     "[glow_layer][crisp_layer]overlay=0:0:format=auto[bar_layer]",
                 ])
             else:
-                graph.append(draw + "," + StaticVideoExportRenderer._color_matrix(theme.visualizer, bars.opacity) + "[bar_layer]")
+                graph.append(
+                    ((draw + ",") if draw else "[bar_mask]")
+                    + StaticVideoExportRenderer._color_matrix(theme.visualizer, bars.opacity)
+                    + "[bar_layer]"
+                )
             graph.append(
                 f"[base][bar_layer]overlay={layout.visualizer_glow.x}:{layout.visualizer_glow.y}:format=auto[with_bars]"
             )
@@ -897,6 +920,8 @@ class StaticVideoExportRenderer:
                     names.add(match.group(1))
             self._available_filters = frozenset(names)
         required = {"scale", "pad", "format", "setparams", "sendcmd", "drawbox"}
+        if isinstance(plan, (PlayerVideoExportPlan, PlayerMotionPreviewPlan)) and plan.request.effects.audio_bars.enabled:
+            required.update({"geq", "alphamerge"})
         if isinstance(plan, (RefinedVideoExportPlan, RefinedMotionPreviewPlan, PlayerVideoExportPlan, PlayerMotionPreviewPlan)):
             required.update({"color", "overlay", "colorchannelmixer"})
             bars = plan.request.effects.audio_bars

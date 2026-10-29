@@ -264,3 +264,84 @@ def test_real_ffmpeg_player_reconstructs_compact_bar_geometry_from_audio(
     # The reconstructed crisp mask must reach the approved bar-zone baseline.
     assert max(active_rows_a) >= 140
     assert max(active_rows_b) >= 140
+
+
+@pytest.mark.integration_ffmpeg
+@pytest.mark.parametrize("bars_enabled", [False, True])
+def test_real_ffmpeg_player_progress_advances_over_stationary_rail(
+    tmp_path, bars_enabled
+):
+    runner, tools = _tools()
+    effects = VideoEffectsV3(
+        pan_zoom=PanZoomSettings(enabled=False),
+        audio_bars=AudioBarsSettingsV2(
+            enabled=bars_enabled,
+            variation_mode="organic_rms",
+            bar_count=32,
+            color="#FFFFFF",
+            opacity=0.55,
+            placement="bottom_center",
+            zone_width_px=900,
+            zone_height_px=110,
+            gap_px=8,
+            horizontal_offset_px=0,
+            bottom_margin_px=242,
+            glow=GlowSettings(enabled=False, intensity=0.0),
+        ),
+        player=PlayerOverlaySettings(font=FontSettings("fonts/ui.ttf")),
+    )
+    project = _project(tmp_path, runner, tools, effects=effects)
+    code = run_video_export(
+        argparse.Namespace(
+            album_project=str(project), target="album", track_id=None,
+            profile="youtube-1080p30-player-v1",
+            ffmpeg_path=str(tools.resolve("ffmpeg").path),
+            ffprobe_path=str(tools.resolve("ffprobe").path),
+        ),
+        state_root=tmp_path / "state",
+    )
+    assert code == 0
+    output = next(
+        (project / "output" / "profiles" / "youtube-1080p30-player-v1").rglob("*.mp4")
+    )
+    ffmpeg = tools.resolve("ffmpeg").path
+    frames = [
+        _extract_rgb(
+            runner,
+            ffmpeg,
+            output,
+            tmp_path / f"progress-{index}.rgb",
+            timestamp=timestamp,
+            crop="1552:6:184:930",
+        )
+        for index, timestamp in enumerate((0.1, 3.0, 5.8))
+    ]
+
+    def column_luma(frame: bytes) -> list[float]:
+        width = 1552
+        height = 6
+        values = []
+        for x in range(width):
+            total = 0.0
+            for y in range(height):
+                offset = (y * width + x) * 3
+                red, green, blue = frame[offset : offset + 3]
+                total += 0.2126 * red + 0.7152 * green + 0.0722 * blue
+            values.append(total / height)
+        return values
+
+    luminance = [column_luma(frame) for frame in frames]
+    boundaries = []
+    for values in luminance:
+        rail = sum(values[-40:]) / 40
+        fill = sum(values[:10]) / 10
+        threshold = (rail + fill) / 2
+        boundaries.append(sum(value < threshold for value in values))
+
+    assert boundaries[0] == pytest.approx(26, abs=24)
+    assert boundaries[1] == pytest.approx(776, abs=30)
+    assert boundaries[2] == pytest.approx(1500, abs=30)
+    assert boundaries[0] < boundaries[1] < boundaries[2]
+    # The unfilled rail at the far end remains the same while only the fill advances.
+    for left, right in zip(luminance, luminance[1:]):
+        assert max(abs(a - b) for a, b in zip(left[-20:], right[-20:], strict=True)) < 8

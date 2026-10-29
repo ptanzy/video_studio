@@ -674,7 +674,7 @@ class StaticVideoExportRenderer:
             if effect_control_path is None:
                 raise MediaInfrastructureError("INVALID_RENDER_PLAN", "Effect-control staging is unavailable.")
             sendcmd = f",sendcmd=filename='{StaticVideoExportRenderer._filter_path(effect_control_path)}'"
-            if not effects.audio_bars.enabled:
+            if not effects.audio_bars.enabled or effect_control.bar_control_path is not None:
                 base += sendcmd
         graph = [base + "[base]"]
         current = "base"

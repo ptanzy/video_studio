@@ -150,3 +150,18 @@ def test_preview_filter_uses_absolute_time_without_forcing_preview_end_to_origin
     assert "on/30+120" in value
     assert "gte(on," not in value
 
+
+def test_filter_can_emit_a_bounded_sequence_from_one_still_input():
+    settings = PanZoomSettings(enabled=True)
+
+    value = camera_filter(settings, 4.0, frames_per_input=120)
+
+    assert value is not None
+    assert ":d=120:s=1920x1080:fps=30" in value
+
+
+@pytest.mark.parametrize("value", [0, -1, 1.5, True])
+def test_filter_rejects_invalid_frames_per_input(value):
+    with pytest.raises(ValueError, match="frames_per_input"):
+        camera_filter(PanZoomSettings(enabled=True), 4.0, frames_per_input=value)
+

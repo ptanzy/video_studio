@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from wrld_video_studio.domain.camera_motion import camera_filter
 from wrld_video_studio.domain.player_overlay import (
     FontSettings,
     PlayerOverlaySettings,
@@ -345,3 +346,53 @@ def test_real_ffmpeg_player_progress_advances_over_stationary_rail(
     # The unfilled rail at the far end remains the same while only the fill advances.
     for left, right in zip(luminance, luminance[1:]):
         assert max(abs(a - b) for a, b in zip(left[-20:], right[-20:], strict=True)) < 8
+
+
+@pytest.mark.integration_ffmpeg
+def test_real_ffmpeg_supersampled_camera_moves_landmark_smoothly_between_frames(
+    tmp_path,
+):
+    runner, tools = _tools()
+    ffmpeg = tools.resolve("ffmpeg").path
+    settings = PanZoomSettings(
+        enabled=True,
+        max_zoom=1.04,
+        cycle_seconds=180,
+        return_to_origin=False,
+    )
+    camera = camera_filter(
+        settings,
+        300.0,
+        start_time_seconds=60.0,
+        preview=True,
+        frames_per_input=120,
+    )
+    assert camera is not None
+    output = tmp_path / "camera-landmark.gray"
+    graph = (
+        "scale=3840:2160:force_original_aspect_ratio=decrease:flags=lanczos,"
+        "pad=3840:2160:(ow-iw)/2:(oh-ih)/2:black,"
+        + camera
+        + ",crop=1920:1:0:540,format=gray"
+    )
+    result = runner.run(
+        [
+            str(ffmpeg), "-v", "error", "-f", "lavfi", "-i",
+            "color=black:s=1920x1080,drawbox=x=960:y=0:w=4:h=1080:c=white:t=fill",
+            "-vf", graph, "-frames:v", "120", "-f", "rawvideo", "-y", str(output),
+        ],
+        timeout_seconds=60,
+    )
+    assert result.returncode == 0 and not result.timed_out
+    pixels = output.read_bytes()
+    assert len(pixels) == 1920 * 120
+    centroids = []
+    for frame in range(120):
+        row = pixels[frame * 1920 : (frame + 1) * 1920]
+        weights = [max(0, value - 16) for value in row]
+        total = sum(weights)
+        assert total > 0
+        centroids.append(sum(index * value for index, value in enumerate(weights)) / total)
+    steps = [abs(right - left) for left, right in zip(centroids, centroids[1:])]
+    assert len({round(value, 2) for value in centroids}) >= 15
+    assert max(steps) < 0.75

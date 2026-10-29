@@ -322,10 +322,16 @@ class StaticVideoExportRenderer:
             plan.request.effects.audio_bars.enabled
             or plan.request.effects.track_progress.enabled
         )
+        player_smooth_camera = (
+            player_overlays and plan.request.effects.pan_zoom.enabled
+        )
         args = [
             str(ffmpeg.path), "-hide_banner", "-nostdin", "-v", "error", "-xerror", "-nostats",
-            "-progress", "pipe:1", "-loop", "1", "-framerate", "30", "-i", str(background),
+            "-progress", "pipe:1",
         ]
+        if not player_smooth_camera:
+            args.extend(["-loop", "1"])
+        args.extend(["-framerate", "30", "-i", str(background)])
         if excerpt_start and not bounded_preview:
             args.extend(["-ss", f"{excerpt_start / SAMPLE_RATE:.9f}"])
         args.extend([
@@ -656,15 +662,21 @@ class StaticVideoExportRenderer:
         player = effects.player
         theme = resolved.theme
         layout = resolved.layout
+        camera_enabled = effects.pan_zoom.enabled
+        working_width = 3840 if camera_enabled else 1920
+        working_height = 2160 if camera_enabled else 1080
         base = (
-            "[0:v]scale=1920:1080:force_original_aspect_ratio=decrease:flags=lanczos:"
-            "out_color_matrix=bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black"
+            f"[0:v]scale={working_width}:{working_height}:"
+            "force_original_aspect_ratio=decrease:flags=lanczos:"
+            f"out_color_matrix=bt709,pad={working_width}:{working_height}:"
+            "(ow-iw)/2:(oh-ih)/2:black"
         )
         camera = camera_filter(
             effects.pan_zoom,
             target_duration,
             start_time_seconds=start_sample / SAMPLE_RATE,
             preview=preview,
+            frames_per_input=(max(1, math.ceil(duration * 30)) if camera_enabled else 1),
         )
         if camera is not None:
             base += "," + camera

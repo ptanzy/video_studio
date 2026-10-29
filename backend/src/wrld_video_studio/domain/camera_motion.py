@@ -57,6 +57,7 @@ def camera_filter(
     *,
     start_time_seconds: float = 0.0,
     preview: bool = False,
+    frames_per_input: int = 1,
 ) -> str | None:
     """Return the deterministic zoompan filter for the approved 1080p30 profile."""
     if not settings.enabled:
@@ -65,6 +66,8 @@ def camera_filter(
         raise ValueError("start_time_seconds must be finite and nonnegative")
     if start_time_seconds >= target_duration:
         raise ValueError("start_time_seconds must be before the target end")
+    if type(frames_per_input) is not int or frames_per_input < 1:
+        raise ValueError("frames_per_input must be a positive integer")
     frame_count = max(1, math.ceil(target_duration * FRAME_RATE))
     last_frame = frame_count - 1
     time_expr = f"on/{FRAME_RATE}"
@@ -94,7 +97,7 @@ def camera_filter(
             x = f"if(gte(on,{last_frame}),0,{return_x})"
             y = f"if(gte(on,{last_frame}),0,{return_y})"
     return (
-        f"zoompan=z='{zoom}':x='{x}':y='{y}':d=1:"
+        f"zoompan=z='{zoom}':x='{x}':y='{y}':d={frames_per_input}:"
         f"s={CANVAS_WIDTH}x{CANVAS_HEIGHT}:fps={FRAME_RATE}"
     )
 

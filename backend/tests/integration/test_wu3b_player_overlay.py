@@ -8,8 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from wrld_video_studio.domain.player_overlay import FontSettings, PlayerOverlaySettings
+from wrld_video_studio.domain.player_overlay import (
+    FontSettings,
+    PlayerOverlaySettings,
+    PlayerProgressSettings,
+)
 from wrld_video_studio.domain.video_effects import PanZoomSettings
+from wrld_video_studio.domain.video_effects_v2 import AudioBarsSettingsV2, GlowSettings
 from wrld_video_studio.domain.video_effects_v3 import VideoEffectsV3
 from wrld_video_studio.infrastructure.ffprobe_adapter import FFprobeAdapter
 from wrld_video_studio.infrastructure.media_tools import MediaToolchain
@@ -40,23 +45,39 @@ def _font() -> Path:
     pytest.skip("a Unicode TTF acceptance font is unavailable")
 
 
-def _project(tmp_path: Path, runner: SubprocessRunner, tools: MediaToolchain) -> Path:
+def _project(
+    tmp_path: Path,
+    runner: SubprocessRunner,
+    tools: MediaToolchain,
+    *,
+    effects: VideoEffectsV3 | None = None,
+    first_track_silence: bool = False,
+) -> Path:
     project = tmp_path / "synthetic-player"
     (project / "fonts").mkdir(parents=True)
     shutil.copyfile(_font(), project / "fonts" / "ui.ttf")
     ffmpeg = tools.resolve("ffmpeg").path
     commands = [
         [str(ffmpeg), "-v", "error", "-f", "lavfi", "-i", "color=c=0x1d3557:s=640x360,drawbox=x=80:y=60:w=180:h=120:c=0xd4a017:t=fill", "-frames:v", "1", "-y", str(project / "background.png")],
-        [str(ffmpeg), "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=3", "-ac", "2", "-c:a", "pcm_s16le", "-y", str(project / "one.wav")],
+        [
+            str(ffmpeg), "-v", "error", "-f", "lavfi", "-i",
+            (
+                "anullsrc=r=48000:cl=stereo:d=3"
+                if first_track_silence
+                else "sine=frequency=440:sample_rate=48000:duration=3"
+            ),
+            "-ac", "2", "-c:a", "pcm_s16le", "-y", str(project / "one.wav"),
+        ],
         [str(ffmpeg), "-v", "error", "-f", "lavfi", "-i", "sine=frequency=880:sample_rate=48000:duration=3", "-ac", "2", "-c:a", "pcm_s16le", "-y", str(project / "two.wav")],
     ]
     for command in commands:
         result = runner.run(command, timeout_seconds=30)
         assert result.returncode == 0 and not result.timed_out
-    effects = VideoEffectsV3(
-        pan_zoom=PanZoomSettings(enabled=True, cycle_seconds=15, return_duration_seconds=0.5),
-        player=PlayerOverlaySettings(font=FontSettings("fonts/ui.ttf")),
-    )
+    if effects is None:
+        effects = VideoEffectsV3(
+            pan_zoom=PanZoomSettings(enabled=True, cycle_seconds=15, return_duration_seconds=0.5),
+            player=PlayerOverlaySettings(font=FontSettings("fonts/ui.ttf")),
+        )
     manifest = {
         "format": "wrld-video-album/4.0",
         "album": {"id": "player", "title": "Player Album Échos", "artist": "Test", "parent_channel": "WRLD-FI", "genre_channel": "World Music"},
@@ -135,3 +156,111 @@ def test_real_ffmpeg_player_album_renders_decodes_and_has_separated_regions(tmp_
     assert len(visualizer) > len(reserved_gap) + 10
     assert len(footer) > len(reserved_gap) + 10
     assert len(reserved_gap) < 20
+
+
+def _extract_rgb(
+    runner: SubprocessRunner,
+    ffmpeg: Path,
+    source: Path,
+    destination: Path,
+    *,
+    timestamp: float,
+    crop: str,
+) -> bytes:
+    result = runner.run(
+        [
+            str(ffmpeg), "-v", "error", "-ss", str(timestamp), "-i", str(source),
+            "-vf", f"crop={crop}", "-frames:v", "1", "-pix_fmt", "rgb24",
+            "-f", "rawvideo", "-y", str(destination),
+        ],
+        timeout_seconds=60,
+    )
+    assert result.returncode == 0 and not result.timed_out
+    return destination.read_bytes()
+
+
+@pytest.mark.integration_ffmpeg
+@pytest.mark.parametrize("glow_enabled", [False, True])
+def test_real_ffmpeg_player_reconstructs_compact_bar_geometry_from_audio(
+    tmp_path, glow_enabled
+):
+    runner, tools = _tools()
+    effects = VideoEffectsV3(
+        pan_zoom=PanZoomSettings(enabled=False),
+        audio_bars=AudioBarsSettingsV2(
+            enabled=True,
+            variation_mode="organic_rms",
+            bar_count=32,
+            color="#FFFFFF",
+            opacity=1.0,
+            placement="bottom_center",
+            zone_width_px=900,
+            zone_height_px=110,
+            gap_px=8,
+            horizontal_offset_px=0,
+            bottom_margin_px=242,
+            attack_ms=0,
+            release_ms=0,
+            glow=GlowSettings(enabled=glow_enabled, intensity=0.8),
+        ),
+        player=PlayerOverlaySettings(
+            font=FontSettings("fonts/ui.ttf"),
+            progress=PlayerProgressSettings(enabled=False),
+        ),
+    )
+    project = _project(
+        tmp_path,
+        runner,
+        tools,
+        effects=effects,
+        first_track_silence=True,
+    )
+    code = run_video_export(
+        argparse.Namespace(
+            album_project=str(project), target="album", track_id=None,
+            profile="youtube-1080p30-player-v1",
+            ffmpeg_path=str(tools.resolve("ffmpeg").path),
+            ffprobe_path=str(tools.resolve("ffprobe").path),
+        ),
+        state_root=tmp_path / "state",
+    )
+    assert code == 0
+    output = next(
+        (project / "output" / "profiles" / "youtube-1080p30-player-v1").rglob("*.mp4")
+    )
+    ffmpeg = tools.resolve("ffmpeg").path
+    crop = "972:182:474:692"
+    silent_a = _extract_rgb(
+        runner, ffmpeg, output, tmp_path / "silent-a.rgb", timestamp=0.5, crop=crop
+    )
+    silent_b = _extract_rgb(
+        runner, ffmpeg, output, tmp_path / "silent-b.rgb", timestamp=1.5, crop=crop
+    )
+    tone_a = _extract_rgb(
+        runner, ffmpeg, output, tmp_path / "tone-a.rgb", timestamp=3.5, crop=crop
+    )
+    tone_b = _extract_rgb(
+        runner, ffmpeg, output, tmp_path / "tone-b.rgb", timestamp=4.5, crop=crop
+    )
+
+    def changed_pixels(left: bytes, right: bytes) -> tuple[int, set[int]]:
+        changed = 0
+        rows: set[int] = set()
+        width = 972
+        for offset in range(0, len(left), 3):
+            if max(abs(left[offset + channel] - right[offset + channel]) for channel in range(3)) > 12:
+                changed += 1
+                rows.add((offset // 3) // width)
+        return changed, rows
+
+    quiet_change, _ = changed_pixels(silent_a, silent_b)
+    active_change_a, active_rows_a = changed_pixels(silent_a, tone_a)
+    active_change_b, active_rows_b = changed_pixels(silent_b, tone_b)
+    assert quiet_change < 2_000
+    assert active_change_a > 5_000
+    assert active_change_b > 5_000
+    assert len(active_rows_a) > 20
+    assert len(active_rows_b) > 20
+    # The reconstructed crisp mask must reach the approved bar-zone baseline.
+    assert max(active_rows_a) >= 140
+    assert max(active_rows_b) >= 140

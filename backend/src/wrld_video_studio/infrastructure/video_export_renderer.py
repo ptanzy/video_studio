@@ -693,7 +693,8 @@ class StaticVideoExportRenderer:
             if effect_control.bar_control_path is not None:
                 graph.extend([
                     f"[2:v]scale={layer_width}:{layer_height}:flags=neighbor,"
-                    f"geq=lum='if(eq(p(X,Y),0),0,if(between(Y,{zone_bottom}-p(X,Y),{zone_bottom - 1}),255,0))'[bar_alpha]",
+                    f"geq=lum='if(eq(p(X,Y),0),0,if(between(Y,{zone_bottom}-p(X,Y),{zone_bottom - 1}),65535,0))',"
+                    "setparams=range=full,scale=in_range=full:out_range=full,format=gray[bar_alpha]",
                     f"color=c=white:s={layer_width}x{layer_height}:r=30:d={duration:.9f},format=rgba[bar_white]",
                     "[bar_white][bar_alpha]alphamerge[bar_mask]",
                 ])
@@ -838,7 +839,8 @@ class StaticVideoExportRenderer:
                 current = output
 
         graph.append(
-            f"[{current}]format=yuv420p,setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709[vout]"
+            f"[{current}]scale=in_range=auto:out_range=tv,format=yuv420p,"
+            "setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709[vout]"
         )
         return ";".join(graph)
 

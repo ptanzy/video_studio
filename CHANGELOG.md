@@ -1,5 +1,7 @@
 ## Unreleased — WU3 final remediation
 
+- Adds the Phase D corrected renderer/presentation generation (`wu3b-player-export-2`, `wrld-player-presentation/2.0`) so repaired pixels publish under a new digest-qualified directory while existing verified player artifacts remain intact and reusable.
+- Corrects compact `gray16le` visualizer reconstruction with explicit 16-bit/full-range alpha conversion, reconnects album/track progress commands to the live compact-control graph, and uses a bounded 2× camera working canvas for subpixel-capable Phase D motion while keeping overlays stationary.
 - Replaces Phase D's full-duration per-bar `sendcmd` list with a compact one-row-per-frame bar control stream, preventing FFmpeg 9.0.2 from stalling before its first frame while preserving the exact RMS heights, player composition, glow, progress, and output contract.
 - Reconciles crash-interrupted export attempts before request-digest retry selection and makes synchronous CLI execution claim the exact submitted job/attempt, preserving historical diagnostics while preventing an older queued job from being reported as the requested export.
 - Removes the Windows process-start/Job Object assignment race by launching children suspended, assigning the kill-on-close Job Object through the owned process handle, and resuming only after ownership succeeds. Structured internal diagnostics now identify the failing Win32 stage/code without weakening the public `PROCESS_OWNERSHIP_FAILED` contract.

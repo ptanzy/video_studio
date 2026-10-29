@@ -10,6 +10,7 @@ from wrld_video_studio.domain.media_errors import MediaInfrastructureError
 from wrld_video_studio.domain.video_export_v4 import (
     PLAYER_PRESENTATION_VERSION,
     PLAYER_PROFILE_ID,
+    PLAYER_RENDERER_VERSION,
     create_player_plan,
     parse_player_export_result,
     parse_player_export_request,
@@ -37,12 +38,19 @@ def test_player_manifest_request_plan_and_namespace() -> None:
         manifest.effects.fingerprint,
         "7c2eadb17a2cfab9ed55570d6e68f72ee848b26d29af8307045df02cd60e84b3",
     }
-    assert PLAYER_PRESENTATION_VERSION == "wrld-player-presentation/1.0"
+    assert PLAYER_RENDERER_VERSION == "wu3b-player-export-2"
+    assert PLAYER_PRESENTATION_VERSION == "wrld-player-presentation/2.0"
     legacy_digest = canonical_sha256({
         "effects": request.effects.to_dict(),
         "resolved_player": request.resolved_player.to_dict(),
     })
     assert plan.effect_config_digest != legacy_digest
+    prior_presentation_digest = canonical_sha256({
+        "effects": request.effects.to_dict(),
+        "resolved_player": request.resolved_player.to_dict(),
+        "presentation_version": "wrld-player-presentation/1.0",
+    })
+    assert plan.effect_config_digest != prior_presentation_digest
 
 
 def test_metadata_prefers_only_reliable_analysis_and_preserves_provenance() -> None:

@@ -32,8 +32,8 @@ PLAYER_MANIFEST_FORMAT = "wrld-video-album/4.0"
 PLAYER_EXPORT_REQUEST_VERSION = "video-export-request/4.0"
 PLAYER_EXPORT_RESULT_VERSION = "video-export-result/4.0"
 PLAYER_PROFILE_ID = "youtube-1080p30-player-v1"
-PLAYER_RENDERER_VERSION = "wu3b-player-export-1"
-PLAYER_PRESENTATION_VERSION = "wrld-player-presentation/1.0"
+PLAYER_RENDERER_VERSION = "wu3b-player-export-2"
+PLAYER_PRESENTATION_VERSION = "wrld-player-presentation/2.0"
 
 
 @dataclass(frozen=True, slots=True)

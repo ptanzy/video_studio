@@ -135,7 +135,7 @@ class _PreviewFixture:
         self.resolver = SecureFilesystemArtworkSourceResolver(registry, self.snapshot_root)
         self.cache = SecureFilesystemPreviewCache(self.cache_root)
         self.coordinator = PreviewSingleFlightCoordinator(
-            ProcessLocalRenderAdmission(), wait_timeout_seconds=10
+            ProcessLocalRenderAdmission(), wait_timeout_seconds=max(15.0, timeout + 5.0)
         )
         runner = SubprocessRunner()
         self.backend = VerifiedFFmpegPreviewBackend(

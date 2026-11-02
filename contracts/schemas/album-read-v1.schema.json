@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://wrld.local/schemas/album-read-v1.schema.json",
+  "title": "WRLD normalized album read v1", "type": "object", "additionalProperties": false,
+  "required": ["contract_version", "project_id", "source_fingerprint", "manifest_sha256", "manifest_format", "album", "visual", "tracks", "render"],
+  "properties": {
+    "contract_version": {"const": "wrld-album-read/1.0"}, "project_id": {"$ref": "#/$defs/id"},
+    "source_fingerprint": {"$ref": "#/$defs/sha"}, "manifest_sha256": {"$ref": "#/$defs/sha"},
+    "manifest_format": {"enum": ["wrld-video-album/1.0", "wrld-video-album/2.0", "wrld-video-album/3.0", "wrld-video-album/4.0"]},
+    "album": {"type": "object", "additionalProperties": false, "required": ["id", "title", "artist", "channel"], "properties": {"id": {"$ref": "#/$defs/id"}, "title": {"$ref": "#/$defs/text"}, "artist": {"$ref": "#/$defs/text"}, "channel": {"$ref": "#/$defs/text"}}},
+    "visual": {"type": "object", "additionalProperties": false, "required": ["background"], "properties": {"background": {"$ref": "#/$defs/path"}, "cover": {"$ref": "#/$defs/path"}, "thumbnail": {"$ref": "#/$defs/path"}}},
+    "tracks": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "number", "title", "audio", "normalized_sample_count", "audio_sha256"], "properties": {"id": {"$ref": "#/$defs/id"}, "number": {"type": "integer", "minimum": 1}, "title": {"$ref": "#/$defs/text"}, "audio": {"$ref": "#/$defs/path"}, "normalized_sample_count": {"type": "integer", "minimum": 1}, "audio_sha256": {"$ref": "#/$defs/sha"}}}},
+    "render": {"type": "object", "additionalProperties": false, "required": ["profile_id", "effects"], "properties": {"profile_id": {"$ref": "#/$defs/id"}, "effects": {"type": "object"}}}
+  },
+  "$defs": {"id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"}, "text": {"type": "string", "minLength": 1}, "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "path": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"}}
+}

@@ -1,33 +1,55 @@
-# WRLD Video Studio — Copilot handoff v2.4
+# WRLD Video Studio — Copilot handoff v2.7
 
-**Start here:** `AGENTS.md`, `docs/copilot/00_READ_FIRST.md`, `docs/copilot/31_SPEC_AUTHORITY_AND_DECISION_REGISTER.md`, `docs/copilot/38_WU3A_VIDEO_EXPORT_SPECIFICATION.md`, `docs/copilot/39_WU3B_CORE_MOTION_AND_AUDIO_VISUALIZATION.md`, and `docs/copilot/40_WU3B_VISUAL_REFINEMENT_PHASE_A.md`. WU1–WU3 are implemented historical units. **WU3A — Video Export has an implementation candidate; final acceptance remains pending** until the real *Echoes of Asia* album and one full track pass automated verification and human playback review. WU3B Phases 1–4 and the additive visual-refinement/player generations are implementation candidates. The Phase D label-free player presentation has durable human acceptance; remaining WU3B and repository-closure gates stay distinct from WU3A.
+**Start here:** `AGENTS.md`, `docs/copilot/00_READ_FIRST.md`, `docs/copilot/31_SPEC_AUTHORITY_AND_DECISION_REGISTER.md`, `docs/copilot/38_WU3A_VIDEO_EXPORT_SPECIFICATION.md`, `docs/copilot/39_WU3B_CORE_MOTION_AND_AUDIO_VISUALIZATION.md`, `docs/copilot/40_WU3B_VISUAL_REFINEMENT_PHASE_A.md`, and Docs 41–46. WU1–WU3 are implemented historical units. **WU3A — Video Export has an implementation candidate; final acceptance remains pending** until the real *Echoes of Asia* album and one full track pass automated verification and human playback review. WU3B and its additive renderer generations retain their separate acceptance gates. Docs 41–46 record approved WU4 product architecture and Phase 2R technical contracts. A later Functional Import authorization covers Phase 2R.1–2R.3; the uncommitted candidates remain acceptance-pending.
 
 ## Current roadmap and capability status
 
-Completed/history sequence: **WU1 → WU2 → WU3 → WU3A implementation candidate**. Approved forward sequence: **WU3B → WU4 → WU5 → WU6 → WU7**.
+Completed/history sequence: **WU1 → WU2 → WU3 → WU3A implementation candidate**. Approved forward ownership sequence: **WU3B closure → WU4 Import/Review → WU5 Metadata → WU6 Rendering/batch operations → WU7 advanced layered composition → WU8 imported video sources and clip playlists**.
 
 - Implemented: WU1 foundations; WU2 synthetic media/job infrastructure; WU3 authoritative still preview/color backend.
 - Implemented candidate: headless WU3A album/track static-background export, versioned contracts, secure project-relative loading, sample-frame timeline/chapters, strict BT.709 H.264/AAC encoding, full-decode verification, lifecycle integration, durable progress/private diagnostics, recovery, and project-local technical artifacts. Short real-media export passes on the pinned Windows FFmpeg/FFprobe 9.0.2 build; real-album acceptance is still pending.
-- Implemented candidate: additive WU3B flat-image pan/zoom, RMS bars, sample-timeline progress, refined motion-v2, player-v1, and private production-path previews. Remediation adds bounded excerpt preprocessing, a four-flight capacity, conservative orphan reconciliation, path/diagnostic hardening, Unicode glyph validation, and composited-footer contrast enforcement.
+- Implemented candidate: additive WU3B flat-image pan/zoom, RMS bars, sample-timeline progress, refined motion-v2, additive player presentation generations, and private production-path previews. Remediation adds bounded excerpt preprocessing, a four-flight capacity, conservative orphan reconciliation, path/diagnostic hardening, Unicode glyph validation, and composited-footer contrast enforcement.
 - Human verification: the October 27, 2026 Phase D label-free player presentation is accepted for the reviewed 30-second three-track artifact. This does not imply acceptance of later visible changes or close WU3A.
-- Not yet implemented: the WU4 React Import/Review workflow, the WU5 Metadata workflow, the WU6 integrated Render UX/release gate, or WU7 advanced visual composition.
+- WU4 implementation candidates in the current working tree include catalog-v2 migration, flexible trusted-root registration, recursive private inventories, restart-safe bounded scan attempts, opaque audio/image resources, thumbnails, persistent exclusions, project-level Import handoff, durable Review/Creation planning, and the Phase 4A Creation v4 foundation. V4 makes each Album, Single, and Short own its complete visual configuration while templates remain reusable presets with optional historical provenance; the current frontend recognizes v4 but blocks editing until Phase 4B. Creation retains explicit revision-safe Save and conflict/indeterminate-save recovery. These changes are uncommitted, are not part of the stated HEAD, and still require manual UI acceptance.
+- Implemented as uncommitted candidates but not yet accepted: Phase 2R flexible recursive ingestion, secure media resources, the session-only functional Import handoff, and revision-safe WU4 Creation/Editor persistence. Not yet implemented: authoritative WU3-backed preview execution from this UI, the WU5 Metadata workflow, the WU6 integrated Render/batch UX, WU7 advanced layered composition, or WU8 imported-video/clip-playlist rendering.
 - WU3A human verification: WU3A will not be complete until the real *Echoes of Asia* album and a full track are rendered, automatically verified/decoded, and manually reviewed in VLC or Windows Media Player. No accepted full-album artifact exists yet.
-- Deferred beyond WU3B: full Shorts composition, layered/title-aware/parallax/atmospheric effects and composition UI (WU7), frontend render orchestration, and YouTube upload (which remains outside the POC).
+- Deferred beyond WU3B: full Shorts composition; layered/title-aware/parallax/atmospheric effects and composition UI (WU7); imported video sources and clip playlists (WU8); frontend render orchestration; and YouTube upload (which remains outside the POC).
 
 Doc 38 remains the WU3A contract and acceptance authority. Docs 34–37 remain the accurate WU2/WU3 implementation records.
 
 ## Historical v1.6 handoff context
 
-The repository began as a design/specification handoff for a local Windows-first POC: React + TypeScript + Vite + Tailwind + WaveSurfer.js, FastAPI + Python domain/application + FFmpeg. WU1–WU3 are now implemented as described above; the React workflow remains future work. The intended UI flow is **Import → Review → Metadata → Render**. No upload service is in the POC.
+The repository began as a design/specification handoff for a local Windows-first POC: React + TypeScript + Vite + Tailwind + WaveSurfer.js, FastAPI + Python domain/application + FFmpeg. WU1–WU3 are now implemented as described above. The current working tree contains an evolving production-intended React candidate, but its backend integration and acceptance remain incomplete. The intended UI flow is **Import → Review → Metadata → Render**. No upload service is in the POC.
 
 ## Getting started
 1. Work in this repository; do not recreate it from the historical handoff package.
-2. Read root `AGENTS.md`, `docs/copilot/00_READ_FIRST.md`, every numbered specification through 39, and the actual source/tests before proposing WU3B changes.
+2. Read root `AGENTS.md`, `docs/copilot/00_READ_FIRST.md`, every numbered specification through 46, and the actual source/tests before proposing changes.
 3. Browse `docs/ui/index.html` for the interactive design reference and screenshots; inspect `docs/examples/metadata_contract.example.json` for the rich illustrative metadata payload.
 4. `contracts/schemas/manifest-v2.schema.json` is the **minimal manifest** validation contract; the rich example is an adapter input, not directly interchangeable with it.
 
+## Run the local Import and Review application
+
+From the repository root, start the backend in one ordinary PowerShell window. Supply one or more explicit trusted music-library roots; no drive, username, channel or album is hardcoded:
+
+```powershell
+.\.venv\Scripts\python.exe -m wrld_video_studio serve-import `
+  --project-root "C:\path\to\your\music-library" `
+  --ffmpeg-path "C:\path\to\ffmpeg.exe" `
+  --ffprobe-path "C:\path\to\ffprobe.exe" `
+  --port 8000
+```
+
+In a second PowerShell window:
+
+```powershell
+Set-Location .\frontend
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. Vite proxies `/api` to the loopback-only backend at `127.0.0.1:8000`. Application state is private per-user state by default; registered source folders and media are never relocated or modified.
+
 ## Documentation layout
-- `docs/copilot/` — normative work-unit, UI, backend, test and contract specs (00–39).
+- `docs/copilot/` — historical/normative work-unit, UI, backend and test specifications plus product-design records. Docs 45–46 govern flexible ingestion, Doc 49 records the historical v2 visual contract, and revised Doc 50 governs Creation v4 composition-owned visuals and reusable presets. Acceptance remains separate from implementation.
 - `docs/ui/` — HTML prototype and PNG mockups.
 - `docs/examples/` — rich metadata contract example.
 - `contracts/schemas/` — machine-readable minimal manifest schema.

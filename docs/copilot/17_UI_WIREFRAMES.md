@@ -95,3 +95,6 @@ On Import, add a compact normalization/validation review with source field, reso
 
 ## v1.7 wireframe extension — comparison and batch validation
 Review: `[Original | Split | Treated]` above the same-frame artwork comparison, keyboard-accessible divider, `Approximate`/`Authoritative` preview status, and refresh/error indicator. Metadata: `[Select] [ID] [Title + count/status] [Description + count/status] [Tags status] [Visibility] [Approval]`; per-row inline errors and aggregate invalid count; selected-row bulk toolbar; detailed editor for long descriptions. See 27 for interactions and tests.
+
+## v2.5 wireframe extension — no prototype replacement
+Use Doc 43 as the mapping of new dialogs, wizards, inherited controls and future clip-playlist editor into the existing Import/Review/Metadata/Render layouts. `docs/ui/index.html` and screenshots remain legacy design references, not current application evidence. New component names are illustrative, not implementation mandates. Doc 44's gates control any WU4 implementation.

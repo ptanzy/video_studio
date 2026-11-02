@@ -7,7 +7,7 @@ import threading
 import time
 from collections.abc import Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,10 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 
 from wrld_video_studio.application.media_jobs import RenderWorker
+from wrld_video_studio.application.wu4 import AlbumProjects, EditorStates, ProjectCatalogs
+from wrld_video_studio.application.project_inventory import ProjectInventoryService
+from wrld_video_studio.application.project_workspace import CreationStates, ProjectPreferences
+from wrld_video_studio.application.scan_coordinator import InventoryScanCoordinator
 from wrld_video_studio.application.preview_resolution import ResolvedPreviewService
 from wrld_video_studio.application.preview_service import (
     AuthoritativePreviewService,
@@ -38,6 +42,16 @@ from wrld_video_studio.infrastructure.artwork_sources import (
     TrustedArtworkRoot,
 )
 from wrld_video_studio.infrastructure.media_tools import MediaTool
+from wrld_video_studio.infrastructure.artwork_theme import FFmpegArtworkThemeResolver
+from wrld_video_studio.infrastructure.editor_state_store import EditorStateStore
+from wrld_video_studio.infrastructure.ffprobe_adapter import FFprobeAdapter
+from wrld_video_studio.infrastructure.override_store import OverrideStore
+from wrld_video_studio.infrastructure.project_catalog import ProjectCatalogStore
+from wrld_video_studio.infrastructure.project_inventory import ProjectInventoryStore
+from wrld_video_studio.infrastructure.project_document_store import ProjectDocumentStore
+from wrld_video_studio.infrastructure.project_resources import TrustedProjectResolver
+from wrld_video_studio.infrastructure.scan_attempt_store import ScanAttemptStore
+from wrld_video_studio.infrastructure.project_sources import FilesystemVideoProjectLoader
 from wrld_video_studio.infrastructure.preview_cache import SecureFilesystemPreviewCache
 from wrld_video_studio.infrastructure.preview_context import (
     ImmutablePreviewContextRegistry,
@@ -45,11 +59,47 @@ from wrld_video_studio.infrastructure.preview_context import (
 )
 from wrld_video_studio.infrastructure.preview_toolchain import VerifiedFFmpegPreviewBackend
 from wrld_video_studio.infrastructure.process_runner import SubprocessRunner
+from wrld_video_studio.infrastructure.asset_resources import AssetResourceService
+from wrld_video_studio.infrastructure.media_tools import MediaToolchain
 from wrld_video_studio.interfaces.http.preview import preview_error_response, router
+from wrld_video_studio.interfaces.http.wu4 import error_response as wu4_error_response
+from wrld_video_studio.interfaces.http.wu4 import router as wu4_router
+from wrld_video_studio.domain.wu4 import InventoryScanPolicy, TrustedProjectRoot, WU4Error
 
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_BIND_HOST = "127.0.0.1"
+
+
+@dataclass(frozen=True, slots=True)
+class WU4ApplicationConfig:
+    project_roots: tuple[TrustedProjectRoot, ...]
+    state_root: Path
+    manifest_schemas: tuple[Path, ...]
+    override_schema: Path
+    catalog_schema: Path
+    editor_state_schema: Path
+    inventory_schema: Path | None = None
+    project_preferences_schema: Path | None = None
+    creation_state_schema: Path | None = None
+    thumbnail_root: Path | None = None
+    ffmpeg_path: Path | None = None
+    ffprobe_path: Path | None = None
+    scan_policy: InventoryScanPolicy = field(default_factory=InventoryScanPolicy)
+
+    def __post_init__(self) -> None:
+        if not self.project_roots or not all(isinstance(item, TrustedProjectRoot) for item in self.project_roots):
+            raise ValueError("WU4 requires immutable trusted project roots.")
+        if type(self.project_roots) is not tuple or type(self.manifest_schemas) is not tuple or not self.manifest_schemas:
+            raise ValueError("WU4 schema and root configuration must use non-empty tuples.")
+        for path in (self.state_root, self.override_schema, self.catalog_schema, self.editor_state_schema, *self.manifest_schemas):
+            if not isinstance(path, Path) or not path.is_absolute():
+                raise ValueError("WU4 paths must be absolute Path values.")
+        for path in (self.inventory_schema, self.project_preferences_schema, self.creation_state_schema, self.thumbnail_root, self.ffmpeg_path, self.ffprobe_path):
+            if path is not None and (not isinstance(path, Path) or not path.is_absolute()):
+                raise ValueError("Optional WU4 paths must be absolute Path values.")
+        if not isinstance(self.scan_policy, InventoryScanPolicy):
+            raise ValueError("WU4 scan policy is invalid.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +117,7 @@ class PreviewApplicationConfig:
     cache_max_bytes: int = DEFAULT_PREVIEW_CACHE_MAX_BYTES
     cache_max_entries: int = DEFAULT_PREVIEW_CACHE_MAX_ENTRIES
     max_waiting_preview_callers: int = DEFAULT_PREVIEW_MAX_WAITING_REQUESTS
+    wu4: WU4ApplicationConfig | None = None
 
     def __post_init__(self) -> None:
         if any(
@@ -121,6 +172,67 @@ class PreviewApplicationConfig:
             raise ValueError(
                 "Every artwork registration requires exactly one album-level Auto-color context."
             )
+        if self.wu4 is not None and not isinstance(self.wu4, WU4ApplicationConfig):
+            raise ValueError("WU4 configuration is invalid.")
+
+
+class WU4ApplicationRuntime:
+    def __init__(self, config: WU4ApplicationConfig, toolchain: Any | None = None, runner: SubprocessRunner | None = None) -> None:
+        runner = runner or SubprocessRunner()
+        if toolchain is None:
+            configured = {name: path for name, path in (("ffmpeg", config.ffmpeg_path), ("ffprobe", config.ffprobe_path)) if path is not None}
+            toolchain = MediaToolchain(runner, configured)
+        resolver = TrustedProjectResolver(config.project_roots)
+        catalog_store = ProjectCatalogStore(
+            OverrideStore(config.state_root / "catalog", config.override_schema), config.catalog_schema
+        )
+        editor_store = EditorStateStore(
+            OverrideStore(config.state_root / "editor", config.override_schema), config.editor_state_schema
+        )
+        loader = FilesystemVideoProjectLoader(
+            config.manifest_schemas,
+            prober=FFprobeAdapter(toolchain, runner),
+            theme_resolver=FFmpegArtworkThemeResolver(toolchain, runner),
+        )
+        self.catalogs = ProjectCatalogs(resolver, catalog_store, loader)
+        self.albums = AlbumProjects(self.catalogs, resolver)
+        self.editors = EditorStates(self.albums, editor_store)
+        inventory_schema = config.inventory_schema or config.catalog_schema.parent / "project-inventory-v1.schema.json"
+        inventory_store = ProjectInventoryStore(
+            OverrideStore(config.state_root / "inventory", config.override_schema), inventory_schema
+        )
+        self.inventories = ProjectInventoryService(self.catalogs, resolver, inventory_store, FFprobeAdapter(toolchain, runner, timeout_seconds=config.scan_policy.probe_timeout_seconds), config.scan_policy)
+        preferences_schema = config.project_preferences_schema or config.catalog_schema.parent / "project-preferences-v1.schema.json"
+        creation_schema = config.creation_state_schema or config.catalog_schema.parent / "creation-state-v1.schema.json"
+        creation_v2_schema = creation_schema.parent / "creation-state-v2.schema.json"
+        creation_v3_schema = creation_schema.parent / "creation-state-v3.schema.json"
+        creation_v4_schema = creation_schema.parent / "creation-state-v4.schema.json"
+        preferences_store = ProjectDocumentStore(
+            OverrideStore(config.state_root / "preferences", config.override_schema), preferences_schema, label="Project preferences"
+        )
+        creation_store = ProjectDocumentStore(
+            OverrideStore(config.state_root / "creation", config.override_schema),
+            (creation_schema, creation_v2_schema, creation_v3_schema, creation_v4_schema),
+            label="Creation state",
+        )
+        self.preferences = ProjectPreferences(self.catalogs, self.inventories, preferences_store)
+        self.creation = CreationStates(
+            self.catalogs,
+            self.inventories,
+            creation_store,
+            albums=self.albums,
+            editors=self.editors,
+            preferences=self.preferences,
+        )
+        scan_schema = config.catalog_schema.parent / "project-scan-v1.schema.json"
+        scan_store = ScanAttemptStore(
+            OverrideStore(config.state_root / "scans", config.override_schema), scan_schema
+        )
+        self.scans = InventoryScanCoordinator(self.inventories, config.scan_policy, scan_store)
+        self.assets = AssetResourceService(self.inventories, toolchain, runner, config.thumbnail_root or config.state_root / "thumbnails")
+
+    def close(self) -> None:
+        self.scans.close()
 
 
 class _ConfiguredMediaToolchain:
@@ -232,6 +344,7 @@ class PreviewApplicationRuntime:
         self._closed = False
         self.cache: SecureFilesystemPreviewCache | None = None
         self.coordinator: PreviewSingleFlightCoordinator | None = None
+        self.wu4: WU4ApplicationRuntime | None = None
         try:
             registry = ImmutableArtworkRegistry(
                 config.artwork_roots, config.artwork_registrations
@@ -265,6 +378,8 @@ class PreviewApplicationRuntime:
                 render_timeout_seconds=config.preview_render_timeout_seconds,
             )
             self.render_backend.identify()
+            if config.wu4 is not None:
+                self.wu4 = WU4ApplicationRuntime(config.wu4, toolchain, runner)
             self.coordinator = PreviewSingleFlightCoordinator(
                 self.render_admission,
                 wait_timeout_seconds=config.preview_wait_timeout_seconds,
@@ -337,6 +452,13 @@ class PreviewApplicationRuntime:
                 if cleanup_failure is None:
                     cleanup_failure = error
 
+        wu4_runtime = getattr(self, "wu4", None)
+        if wu4_runtime is not None:
+            try:
+                wu4_runtime.close()
+            except Exception as error:
+                if cleanup_failure is None:
+                    cleanup_failure = error
         if self.cache is not None:
             try:
                 self.cache.close()
@@ -386,6 +508,7 @@ def create_app(
             raise AssertionError("Cancelled preview initialization unexpectedly returned.")
         try:
             app.state.preview_runtime = runtime
+            app.state.wu4_runtime = getattr(runtime, "wu4", None)
             yield
         finally:
             await _close_runtime_owned(runtime)
@@ -396,11 +519,14 @@ def create_app(
         lifespan=lifespan,
     )
     app.include_router(router)
+    app.include_router(wu4_router)
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_error(
         _request: Request, _error: RequestValidationError
     ):
+        if _request.url.path.startswith("/api/v1/projects") or _request.url.path.startswith("/api/v1/project-roots"):
+            return wu4_error_response(WU4Error("REQUEST_INVALID", "The Import and Review request is invalid."))
         return preview_error_response(
             "PREVIEW_INVALID_REQUEST", "The preview request is invalid."
         )
@@ -408,6 +534,10 @@ def create_app(
     @app.exception_handler(PreviewServiceError)
     async def preview_service_error(_request: Request, error: PreviewServiceError):
         return preview_error_response(error.code, error.message)
+
+    @app.exception_handler(WU4Error)
+    async def wu4_service_error(_request: Request, error: WU4Error):
+        return wu4_error_response(error)
 
     @app.exception_handler(Exception)
     async def unexpected_error(_request: Request, _error: Exception):
@@ -419,6 +549,44 @@ def create_app(
             "PREVIEW_INTERNAL_ERROR", "The preview request could not be completed."
         )
 
+    return app
+
+
+def create_import_app(
+    config: WU4ApplicationConfig,
+    *,
+    runtime_factory: Callable[[WU4ApplicationConfig], WU4ApplicationRuntime] = WU4ApplicationRuntime,
+) -> FastAPI:
+    """Create the Import/Review adapter without initializing preview rendering."""
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        initialization = asyncio.create_task(asyncio.to_thread(runtime_factory, config))
+        try:
+            runtime = await asyncio.shield(initialization)
+        except asyncio.CancelledError as cancellation:
+            await _reconcile_cancelled_initialization(initialization, cancellation)
+            raise AssertionError("Cancelled Import initialization unexpectedly returned.")
+        try:
+            app.state.wu4_runtime = runtime
+            yield
+        finally:
+            await _close_runtime_owned(runtime)
+
+    app = FastAPI(title="WRLD Video Studio Import", version="0.1.0", lifespan=lifespan)
+    app.include_router(wu4_router)
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_error(_request: Request, _error: RequestValidationError):
+        return wu4_error_response(WU4Error("REQUEST_INVALID", "The Import and Review request is invalid."))
+
+    @app.exception_handler(WU4Error)
+    async def wu4_service_error(_request: Request, error: WU4Error):
+        return wu4_error_response(error)
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(_request: Request, error: Exception):
+        LOGGER.error("Unexpected Import HTTP application failure", exc_info=(type(error), error, error.__traceback__))
+        return wu4_error_response(WU4Error("INTERNAL_ERROR", "The Import request could not be completed."))
     return app
 
 
@@ -438,7 +606,7 @@ async def _wait_for_owned_task(
     return cancellation
 
 
-async def _close_runtime_owned(runtime: PreviewApplicationRuntime) -> None:
+async def _close_runtime_owned(runtime: Any) -> None:
     closure = asyncio.create_task(asyncio.to_thread(runtime.close))
     cancellation = await _wait_for_owned_task(closure)
     result = closure.result()
@@ -448,7 +616,7 @@ async def _close_runtime_owned(runtime: PreviewApplicationRuntime) -> None:
 
 
 async def _reconcile_cancelled_initialization(
-    initialization: asyncio.Task[PreviewApplicationRuntime],
+    initialization: asyncio.Task[Any],
     cancellation: asyncio.CancelledError,
 ) -> None:
     await _wait_for_owned_task(initialization)
@@ -476,3 +644,10 @@ def serve(config: PreviewApplicationConfig, *, port: int) -> None:
     import uvicorn
 
     uvicorn.run(create_app(config), host=DEFAULT_BIND_HOST, port=port)
+
+
+def serve_import(config: WU4ApplicationConfig, *, port: int) -> None:
+    if type(port) is not int or not 1 <= port <= 65535:
+        raise ValueError("The local HTTP port must be an integer in [1, 65535].")
+    import uvicorn
+    uvicorn.run(create_import_app(config), host=DEFAULT_BIND_HOST, port=port)

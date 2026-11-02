@@ -1,6 +1,6 @@
 **Historical v1.8 WU1 authority:** WU1 was governed by `32_WU0_RESOLUTION_AND_WU1_BASELINE.md` and `33_WU1_CONTRACT_EXAMPLES_AND_TESTS.md`. Their narrow scope remains the accurate WU1 history. `legacy_v2` is read-only; WU0 involved no execution.
 
-**v2.4 CURRENT ROADMAP AUTHORITY:** WU1–WU3 are implemented history. WU3A has an implementation candidate but remains **IMPLEMENTED — ACCEPTANCE PENDING** under Doc 38. WU3B Phases 1–4 and the additive refinement/player generations are implementation candidates. The October 27, 2026 human review accepted the reviewed label-free Phase D player presentation; remaining WU3B gates and all WU3A full-album/full-track gates remain independent. Read Docs 31, 32, 34–40 and the actual source/tests. The approved forward sequence remains **WU3B closure → WU4 → WU5 → WU6 → WU7**. WU3B does not close or replace WU3A's real *Echoes of Asia* automated and human-playback acceptance.
+**v2.7 CURRENT ROADMAP AUTHORITY:** WU1–WU3 are implemented history. WU3A has an implementation candidate but remains **IMPLEMENTED — ACCEPTANCE PENDING** under Doc 38. WU3B and its additive refinement/player generations retain their separate acceptance gates. Read Docs 31, 32, 34–46 and the actual source/tests. The approved forward ownership sequence is **WU3B closure → WU4 Import/Review → WU5 Metadata → WU6 Rendering/batch operations → WU7 advanced layered composition → WU8 imported video sources and clip playlists**. The current working tree contains an uncommitted consolidated WU4 Import/Review/Creation candidate authorized after Docs 45–46. It is not committed HEAD behavior and remains subject to acceptance evidence.
 
 > **v1.3 authoritative override:** React + TypeScript + Vite + Tailwind + WaveSurfer.js frontend; FastAPI backend; docs live in `docs/copilot/`. Any earlier Streamlit or Python-only UI guidance in this document is superseded by `15_FRONTEND_ARCHITECTURE.md`, `16_UI_UX_SPECIFICATION.md`, and `17_UI_WIREFRAMES.md`. Do not implement Streamlit.
 
@@ -52,3 +52,18 @@ Read Doc 39 after Doc 38. Doc 39 is the WU3B authority and supersedes the earlie
 ## v2.3 visual-refinement reading and gate
 
 Read Doc 40 after Doc 39. It records an additive effects/profile-generation proposal and the Phase B–E plan. Existing `video-effects-v1`, motion-v1 profile/output/preview identities, WU3A static behavior, and WU7 ownership remain unchanged. Doc 40's exact identifiers, fields, numeric defaults, algorithms, and composition-descriptor architecture require explicit approval before implementation.
+
+## v2.5 product-design integration addendum (documentation only)
+Read Docs **41–44** after Doc 40. They record approved UX direction, work-unit ownership, UI mapping, and the WU4 implementation gate. **Do not treat them as authorization to implement new schemas, routes, MP4 support, autosave, or batch orchestration.** Docs 31 and 38–40 continue to govern existing technical contracts and acceptance. The four-screen structure remains Import → Review → Metadata → Render, with WU8 owning imported video sources and clip playlists.
+
+## v2.6 WU4 flexible-ingestion architecture and Phase 2R.0
+
+Read Docs **45–46** after Doc 44. Doc 45 is approved product architecture: one standard trusted-project ingestion path, bounded recursive asset discovery, optional manifest enrichment, and composition assignment downstream from Import. It does not make arbitrary folders valid WU3 render input. Doc 46 is the approved technical contract for registry, inventory, discovery, resources, migration and runtime separation. The planning order is Phase 2A → Phase 2R.0 → Phase 2R.1 → Phase 2R.2 → Phase 2R.3 → Phase 2B → Phase 3 → Phase 4. A later Functional Import authorization satisfied the Phase 2R.1–2R.3 implementation gates; the resulting uncommitted candidates remain acceptance-pending and do not authorize Phase 2B.
+
+## v2.7 consolidated WU4 implementation
+
+A later explicit authorization consolidated Import simplification, Review's Media/Creation/Editor workspaces, durable Creation planning and usability work without adding a fifth top-level screen. The additive `wrld-project-preferences/1.0`, `wrld-import-handoff/2.0` and `wrld-creation-state/1.0` contracts are implementation candidates. V1 handoffs, existing catalog/editor state, WU3 render identities and secure resource contracts remain supported. WU5–WU8 capabilities are still deferred to their owning work units.
+
+## v2.8 WU4 template Editor reading
+
+Read Docs 49–50 after Doc 46. Doc 49 governs `wrld-creation-state/2.0`, visual-template migration, dependencies, sharing and preview boundaries. Doc 50 adds the approved category, warning, explicit background-suggestion and shared-assignment UX. Phase 3 independent copies remain separately gated and WU6 retains Creation-template render admission.

@@ -32,3 +32,6 @@ WU3A delivers the first headless product video slice before frontend work: an ex
 
 ## v1.4 additions
 Required: custom color picker in addition to mood/preset treatments; dedicated YouTube metadata review with per-compilation/per-Short title and description edits, chapter inspection, validation, and approved export. No YouTube publishing API or upload action in POC.
+
+## Integrated UX and ingestion direction (see Docs 41–46)
+The approved product direction includes one flexible trusted-project ingestion path, optional manifest enrichment, one primary Short draft per manifest-backed track, optional future alternate ranges, downstream background/asset assignment, inherited settings, metadata drafts and batch render planning. These are **future capabilities unless explicitly identified as implementation candidates and tested**. Doc 42 defines ownership: WU4 Import/Review, WU5 Metadata, WU6 Rendering/batch operations, WU7 advanced layered composition, and WU8 imported video sources/clip playlists. Doc 46 contains the approved Phase 2R machine contracts; implementation remains separately gated.

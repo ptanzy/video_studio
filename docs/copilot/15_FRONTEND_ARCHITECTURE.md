@@ -51,3 +51,6 @@ After Doc 39's exact contract approval, WU3B provides the headless v2 motion exp
 
 ## v1.4 frontend modules
 Add `ColorTreatmentEditor` to Review and `MetadataReviewPage`/`VideoMetadataEditor`/`ChapterPreview`/`MetadataValidationPanel` to frontend routes. Typed API clients call versioned FastAPI endpoints; backend owns schema validation, override revisions, and authoritative previews. New controls and metadata must have Vitest/RTL and Playwright coverage (doc 20).
+
+## v2.5 frontend integration direction
+Docs 41, 43, and 44 map new workflows to the existing four routes and React architecture. Compose modal/wizard and inherited-setting primitives without a second renderer. **Existing explicit Save and conflict handling remain normative until a separately approved autosave contract is adopted.** Imported-video and clip-playlist components belong to WU8; batch rendering belongs to WU6, not WU4.

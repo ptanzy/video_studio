@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/creation-state-v1.schema.json",
+  "title": "WRLD creation state v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "project_id", "revision", "save_id", "preferred_short_duration_seconds", "albums", "singles", "shorts", "state_digest"],
+  "properties": {
+    "contract_version": {"const": "wrld-creation-state/1.0"},
+    "project_id": {"$ref": "#/$defs/id"},
+    "revision": {"type": "integer", "minimum": 1},
+    "save_id": {"$ref": "#/$defs/id"},
+    "preferred_short_duration_seconds": {"type": "integer", "minimum": 20, "maximum": 120},
+    "albums": {"type": "array", "items": {"$ref": "#/$defs/album"}},
+    "singles": {"type": "array", "items": {"$ref": "#/$defs/single"}},
+    "shorts": {"type": "array", "items": {"$ref": "#/$defs/short"}},
+    "state_digest": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "status": {"enum": ["active", "archived"]},
+    "settings": {"type": "object"},
+    "assignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assignment_id", "asset_id", "expected_sha256", "duplicate_acknowledged"],
+      "properties": {
+        "assignment_id": {"$ref": "#/$defs/id"},
+        "asset_id": {"$ref": "#/$defs/id"},
+        "expected_sha256": {"$ref": "#/$defs/sha256"},
+        "duplicate_acknowledged": {"type": "boolean"}
+      }
+    },
+    "album": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["album_plan_id", "label", "status", "assignments"],
+      "properties": {
+        "album_plan_id": {"$ref": "#/$defs/id"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 128},
+        "status": {"$ref": "#/$defs/status"},
+        "assignments": {"type": "array", "items": {"$ref": "#/$defs/assignment"}}
+      }
+    },
+    "single": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["single_id", "asset_id", "expected_sha256", "status", "customized", "approved", "settings"],
+      "properties": {
+        "single_id": {"$ref": "#/$defs/id"},
+        "asset_id": {"$ref": "#/$defs/id"},
+        "expected_sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"$ref": "#/$defs/status"},
+        "customized": {"type": "boolean"},
+        "approved": {"type": "boolean"},
+        "settings": {"$ref": "#/$defs/settings"}
+      }
+    },
+    "short": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["short_id", "asset_id", "expected_sha256", "status", "start_sample", "sample_count", "origin", "review_required", "customized", "approved", "settings"],
+      "properties": {
+        "short_id": {"$ref": "#/$defs/id"},
+        "asset_id": {"$ref": "#/$defs/id"},
+        "expected_sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"$ref": "#/$defs/status"},
+        "start_sample": {"type": "integer", "minimum": 0},
+        "sample_count": {"type": "integer", "minimum": 1},
+        "origin": {"enum": ["primary_fallback", "manual", "manual_required", "analyzer"]},
+        "review_required": {"type": "boolean"},
+        "customized": {"type": "boolean"},
+        "approved": {"type": "boolean"},
+        "settings": {"$ref": "#/$defs/settings"}
+      }
+    }
+  }
+}

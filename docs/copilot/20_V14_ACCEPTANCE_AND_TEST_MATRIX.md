@@ -44,3 +44,7 @@ WU0: inspection only. WU1: foundations. WU2: reusable media/job infrastructure a
 | X06 | Metadata grid | Batch selection, edit isolation, confirm bulk actions, Table/Detail persistence |
 | X07 | Metadata bounds | Unicode, tags, title/description, placeholders, CSV injection fixtures |
 | X08 | Prototype | Import→Review→Metadata→Render simulated path, no real-render claims |
+
+## v2.5 future-unit allocation note
+
+WU8 owns imported video sources and ordered clip playlists, including their future renderer contracts and acceptance tests. WU7 retains advanced layered still-image composition. This allocation is product-design direction only; it does not define WU8 media algorithms, schemas, routes, defaults, or implementation authorization.

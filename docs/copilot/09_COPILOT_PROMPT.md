@@ -40,3 +40,10 @@ WU1–WU3 are implemented history. Read Docs 32–38 and actual source/tests. Th
 ## v2.2 current-work-unit instruction
 
 Read Doc 39 after all earlier documents. The approved forward sequence is WU3B → WU4 → WU5 → WU6 → WU7 while WU3A acceptance remains independently pending. WU3B scope is approved, but Doc 39 Sections 5–10 contain final recommended contract details that require explicit user approval before any WU3B code or schema edit. Do not infer that approval, do not start WU4/WU7, and do not use WU3B evidence to close WU3A.
+
+## v2.5 prompt update
+Read Docs 41–44. The later ownership sequence is WU4 Import/Review → WU5 Metadata → WU6 Rendering/batch operations → WU7 advanced layered composition → WU8 imported video sources and clip playlists. Doc 44 records the historical Phase 0 blockers and their subsequent disposition; verify the actual working tree before claiming implementation or acceptance.
+
+## v2.6 Phase 2R prompt update
+
+Read Docs 45–46. Doc 45 approves one flexible trusted-project ingestion architecture and the Phase 2R order. Doc 46 approves the technical contracts, limits and compatibility requirements. Preserve the uncommitted Phase 1/2A candidates, existing project IDs/editor state and all WU3 renderer contracts. Do not implement Phase 2R.1 or create executable schemas/routes without separate user authorization.

@@ -43,3 +43,6 @@ Follow `23_BATCH_METADATA_EDITOR.md`: Table/Detail toggle, multi-select, bounded
 
 ## v1.6 metadata generation override
 The v1.6 `26_DESCRIPTION_GENERATION.md` is normative for draft source precedence, chapter generation, manual override preservation, explicit approval, and validation. `publishing_source.description` is optional; template generation must work offline. No fabricated URLs, licenses or rights claims.
+
+## Import-triggered metadata draft direction
+Doc 41 approves generating publishing metadata **drafts** on successful import once the WU5 generation service exists. Keep canonical facts separate from platform text, preserve manual/approved fields, require explicit approval and never treat draft creation as publication. Existing metadata contracts and chapter authority remain unchanged.

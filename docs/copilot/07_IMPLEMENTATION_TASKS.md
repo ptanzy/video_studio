@@ -1,4 +1,4 @@
-**CURRENT v2.4 AUTHORITY:** WU1–WU3 are completed history; WU3A is implemented with acceptance pending; WU3B and its additive refinement/player generations are implementation candidates in final remediation. The approved forward sequence is WU3B closure → WU4 → WU5 → WU6 → WU7. Docs 38–40 control the current graph; Docs 34–37 record completed WU2/WU3 implementation. Historical Streamlit, legacy-adapter, legacy-CLI, and claims that WU2/WU3 implemented final video are obsolete. Do not renumber WU4–WU6, and do not treat WU7 as implemented.
+**CURRENT v2.6 AUTHORITY:** WU1–WU3 are completed history; WU3A is implemented with acceptance pending; WU3B and its additive renderer generations retain their recorded acceptance gates. The approved forward ownership sequence is WU3B closure → WU4 Import/Review → WU5 Metadata → WU6 Rendering/batch operations → WU7 advanced layered composition → WU8 imported video sources and clip playlists. Docs 38–40 control existing renderer generations; Docs 41–46 control later product/architecture ownership and approved Phase 2R contracts. The current working tree contains uncommitted WU4 Phase 1 and Phase 2A implementation candidates. Historical Streamlit, legacy-adapter, legacy-CLI, and claims that WU2/WU3 implemented final video are obsolete.
 
 > **v1.3 authoritative override:** React + TypeScript + Vite + Tailwind + WaveSurfer.js frontend; FastAPI backend; docs live in `docs/copilot/`. Any earlier Streamlit or Python-only UI guidance in this document is superseded by `15_FRONTEND_ARCHITECTURE.md`, `16_UI_UX_SPECIFICATION.md`, and `17_UI_WIREFRAMES.md`. Do not implement Streamlit.
 
@@ -74,3 +74,18 @@ WU0 MUST inspect documents 00–26, `AGENTS.md`, moved assets and schema, rich s
 
 ## v1.7 authoritative implementation sequencing correction
 Older WU4/WU5 references to Streamlit are **obsolete and must not be implemented**. Use React + FastAPI as locked in 15/31. WU0 was no-execution inspection only. The historical graph inserted WU3A after WU3. The v2.2 forward graph is WU3B → WU4 → WU5 → WU6 → WU7; Docs 38–39 preserve WU1–WU3A history and the existing WU4–WU6 numbering. Include 27–31 gates in their reconciled later units. Missing schemas or exact route contracts remain blocked decisions, not license to improvise.
+
+## v2.5 design integration (no work-unit authorization)
+Docs 41–46 establish product/architecture direction and the approved Phase 2R technical contracts. The reconciled ownership map is WU4 Import/Review, WU5 Metadata, WU6 Rendering/batch operations, WU7 advanced layered composition, and WU8 imported video sources/clip playlists. Phase 0 resolved the original eight blockers for the existing Phase 1 candidate; Doc 44 records that history. Phase 2R.1 application changes still require separate authorization and an exact implementation plan.
+
+### WU4 phased delivery after Phase 2A
+
+1. **Phase 2R.0 — documentation and contracts:** reconcile authority/status and propose versioned registry, inventory, discovery, media-resource, rescan and migration contracts. Documentation only.
+2. **Phase 2R.1 — registry and inventory:** after approval, migrate the catalog without changing existing project IDs, add bounded secure recursive discovery, optional manifest enrichment and transactional rescans.
+3. **Phase 2R.2 — media resources:** after approval, add opaque capability-aware audio/image resources and thumbnails. Discovery must not imply browser or render support.
+4. **Phase 2R.3 — functional Import:** connect the retained Phase 2A Import UI to registration, inventory, diagnostics, rescan and truthful workflow handoff. Demonstration mode must be explicit.
+5. **Phase 2B — production Review:** consume revisioned backend editor state, stable Short identity and approved asset references. Do not duplicate Phase 2A components.
+6. **Phase 3 — motion-preview HTTP integration.** Reuse WU3 lifecycle, ownership and capacity contracts.
+7. **Phase 4 — hardening and acceptance.** Include migration, security, accessibility, stale-response and real-browser evidence.
+
+Docs 45–46 define dependencies and acceptance intent. WU5–WU8 remain out of these phases.

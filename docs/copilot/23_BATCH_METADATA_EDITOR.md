@@ -29,3 +29,6 @@ Metadata screen has **Table / Detail** toggle. Default Table for batches (compil
 ## Tests
 - React Testing Library: filtering, selection, bulk action confirmation, inline edits, dirty tracking, Table↔Detail preservation, revision conflicts.
 - Playwright: import → color change → Short selection → Metadata Table batch edit → Detail description → validate → mock render → inspect output status. Test Unicode, title/description bounds, tags limit, escaping, unresolved placeholders, and CSV formula injection. No real publishing or fake upload success.
+
+## v2.5 metadata editor integration
+Retain Table/Detail and batch approval; add pending/stale generated-draft indicators, per-field provenance and explicit bulk impact confirmation as specified in Docs 41 and 43. Do not silently overwrite edited or approved fields.

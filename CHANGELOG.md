@@ -1,3 +1,12 @@
+## Unreleased — consolidated WU4 candidate
+
+- Adds the Phase 4A Creation v4 foundation and Phase 4B native authoring workflow: composition-owned authoritative visual settings, historical template provenance, deterministic sequential upgrades, isolated composition editing, role-aware Apply/Update/Save-as-New template actions, a searchable family/standalone Template Library, and conservative explicit legacy cleanup. WU3 rendering remains unchanged and WU6 mapping remains deferred.
+- Adds flexible trusted-root project registration, bounded recursive media inventory, secure audio/image resources, persistent reversible exclusions and a project-level Import-to-Review handoff.
+- Adds revision-safe Creation planning for Albums, Singles and Shorts, including stable duplicate assignments, independent draft counts, archive/restore, editable sample-frame excerpts, missing/changed-source issues and preservation of existing primary Short identities.
+- Adds generated TypeScript transports, a production-intended React Import/Review/Creation flow, explicit analyzer-unavailable states and a configurable local `serve-import` launcher. WU5–WU8 behavior remains deferred.
+- Corrects the post-implementation audit findings: Creation/Editor dirty-navigation protection, authoritative Editor saves through the Creation document, deterministic legacy-primary reconciliation, persisted scan attempts and restart recovery, multi-draft archive/restore, host-aware path identity and collision rejection, actionable source recovery, bounded Short controls, capability-aware media UI, adversarial M4A/multiframe rejection, and read-after-write reconciliation for indeterminate commits.
+- Adds focused backend/frontend regressions for restart/cancel/retry, stable draft identities, conflict and reload behavior, source fingerprints, duplicate occurrence navigation, unsupported capabilities, keyboard waveform edits and save-outcome reconciliation. The candidate remains uncommitted and pending manual UI acceptance.
+
 ## Unreleased — WU3 final remediation
 
 - Adds the Phase D corrected renderer/presentation generation (`wu3b-player-export-2`, `wrld-player-presentation/2.0`) so repaired pixels publish under a new digest-qualified directory while existing verified player artifacts remain intact and reusable.

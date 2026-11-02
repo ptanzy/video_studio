@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/editor-state-v1.schema.json",
+  "title": "WRLD editor state v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "project_id", "album_id", "revision", "save_id", "source_fingerprint", "profile_id", "base_effects", "album_overrides", "track_overrides", "shorts", "state_digest"],
+  "properties": {
+    "contract_version": {"const": "wrld-editor-state/1.0"},
+    "project_id": {"$ref": "#/$defs/id"},
+    "album_id": {"$ref": "#/$defs/id"},
+    "revision": {"type": "integer", "minimum": 1},
+    "save_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "source_fingerprint": {"$ref": "#/$defs/sha256"},
+    "profile_id": {"$ref": "#/$defs/id"},
+    "base_effects": {"type": "object"},
+    "album_overrides": {"$ref": "#/$defs/settings"},
+    "track_overrides": {"type": "object", "additionalProperties": {"$ref": "#/$defs/settings"}},
+    "shorts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/short"}},
+    "state_digest": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "settings": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "effects": {"type": "object"},
+        "treatment": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["mode", "intensity"], "properties": {"mode": {"const": "auto"}, "intensity": {"type": "number", "minimum": 0, "maximum": 0.6}}},
+          {"type": "object", "additionalProperties": false, "required": ["mode", "preset", "intensity"], "properties": {"mode": {"const": "preset"}, "preset": {"type": "string", "minLength": 1}, "intensity": {"type": "number", "minimum": 0, "maximum": 0.6}}},
+          {"type": "object", "additionalProperties": false, "required": ["mode", "hex", "intensity"], "properties": {"mode": {"const": "custom"}, "hex": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"}, "intensity": {"type": "number", "minimum": 0, "maximum": 0.6}}}
+        ]}
+      }
+    },
+    "approval": {
+      "type": "object", "additionalProperties": false,
+      "required": ["approved_digest", "approved_at"],
+      "properties": {"approved_digest": {"$ref": "#/$defs/sha256"}, "approved_at": {"type": "string", "format": "date-time"}}
+    },
+    "short": {
+      "type": "object", "additionalProperties": false,
+      "required": ["short_id", "track_id", "role", "start_sample", "sample_count", "origin", "review_required", "settings", "approval"],
+      "properties": {
+        "short_id": {"$ref": "#/$defs/id"}, "track_id": {"$ref": "#/$defs/id"}, "role": {"const": "primary"},
+        "start_sample": {"type": "integer", "minimum": 0}, "sample_count": {"type": "integer", "minimum": 1},
+        "origin": {"enum": ["fallback", "manual", "analyzer"]}, "review_required": {"type": "boolean"},
+        "settings": {"$ref": "#/$defs/settings"}, "approval": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/approval"}]}
+      }
+    }
+  }
+}

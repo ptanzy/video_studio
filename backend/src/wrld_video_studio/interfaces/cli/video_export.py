@@ -391,11 +391,13 @@ def _error(code: str, message: str, details: Any = None) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    from wrld_video_studio.interfaces.cli.import_server import add_import_server_parser
     from wrld_video_studio.interfaces.cli.motion_preview import add_motion_preview_parser
 
     parser = argparse.ArgumentParser(prog="python -m wrld_video_studio")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
     add_video_export_parser(subparsers)
     add_motion_preview_parser(subparsers)
+    add_import_server_parser(subparsers)
     args = parser.parse_args(argv)
     return int(args.command(args))

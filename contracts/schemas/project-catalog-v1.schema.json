@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/project-catalog-v1.schema.json",
+  "title": "WRLD private project catalog v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "projects"],
+  "properties": {
+    "contract_version": {"const": "wrld-project-catalog/1.0"},
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["project_id", "root_id", "relative_path", "album_id", "active", "registered_at", "updated_at"],
+        "properties": {
+          "project_id": {"$ref": "#/$defs/id"},
+          "root_id": {"$ref": "#/$defs/id"},
+          "relative_path": {"type": "string", "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).*$"},
+          "album_id": {"$ref": "#/$defs/id"},
+          "active": {"type": "boolean"},
+          "registered_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  },
+  "$defs": {"id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"}}
+}

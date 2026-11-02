@@ -476,7 +476,9 @@ def test_process_runner_cancellation_reaps_owned_descendant():
     import win32event
 
     cancellation = threading.Event()
-    timer = threading.Timer(0.5, cancellation.set)
+    # Leave enough startup time for the owned child to publish its descendant PID
+    # even when the complete real-media suite has put the Windows host under load.
+    timer = threading.Timer(2.0, cancellation.set)
     child_code = "import subprocess,sys,time; child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); print(child.pid,flush=True); time.sleep(30)"
     timer.start()
     try:

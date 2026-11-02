@@ -269,6 +269,12 @@ Shorts composition and advanced compilation motion/effects remain deferred to an
 
 The album-project boundary, `output/` root, and all eight choices below are approved requirements. Implementation is authorized for a subsequent implementation pass under the normal exact plan/report gate; this documentation pass does not add schemas or application code.
 
+### WU4 registration compatibility
+
+WU3A's required `video_manifest.json`, WAV, artwork and non-empty ordered track list apply when adapting a project into a WU3A render request. They do not require every WU4 registered project to be an album or renderable. Under Doc 45, WU4 may register and inventory an empty, manifestless, audio-only or image-only trusted directory. Such a project must not enter WU3A rendering until an approved adapter produces a valid WU3A request from approved source data. WU4 flexible ingestion must not weaken, auto-repair or reinterpret this specification.
+
+Solid-color backgrounds are not supported by the approved WU3A profile, whose `visual.background` image remains required. A future additive renderer generation may support solid color; until then, any WU4 solid-background selection is draft-only and must be reported as unavailable for authoritative rendering.
+
 ### Decision 1 — source, request, and result contracts
 
 **Approved decision:** implement the three video contracts below plus the render-report contract defined in Section 6.2:

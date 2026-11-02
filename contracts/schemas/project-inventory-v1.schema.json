@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/project-inventory-v1.schema.json",
+  "title": "WRLD project inventory v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["contract_version", "project_id", "inventory_revision", "scan_id", "completed_at", "policy_version", "assets", "diagnostics", "counts"],
+  "properties": {
+    "contract_version": {"const": "wrld-project-inventory/1.0"},
+    "project_id": {"$ref": "#/$defs/id"},
+    "inventory_revision": {"type": "integer", "minimum": 0},
+    "scan_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+    "completed_at": {"type": ["string", "null"], "format": "date-time"},
+    "policy_version": {"const": "inventory-policy/1.0"},
+    "assets": {"type": "array", "items": {"$ref": "#/$defs/asset"}},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "counts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["audio", "image", "video", "unknown", "missing"],
+      "properties": {
+        "audio": {"type": "integer", "minimum": 0}, "image": {"type": "integer", "minimum": 0},
+        "video": {"type": "integer", "minimum": 0}, "unknown": {"type": "integer", "minimum": 0},
+        "missing": {"type": "integer", "minimum": 0}
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "path": {"type": "string", "minLength": 1, "maxLength": 4096, "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"},
+    "diagnostic": {
+      "type": "object", "additionalProperties": false, "required": ["code", "message", "relative_path"],
+      "properties": {"code": {"$ref": "#/$defs/id"}, "message": {"type": "string", "minLength": 1, "maxLength": 512}, "relative_path": {"type": ["string", "null"], "maxLength": 4096}}
+    },
+    "capability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["server_stream", "browser_audition", "thumbnail", "inspection", "preview", "render"],
+      "properties": {
+        "server_stream": {"$ref": "#/$defs/support"}, "browser_audition": {"$ref": "#/$defs/support"},
+        "thumbnail": {"$ref": "#/$defs/support"}, "inspection": {"$ref": "#/$defs/support"},
+        "preview": {"$ref": "#/$defs/support"}, "render": {"$ref": "#/$defs/support"}
+      }
+    },
+    "support": {
+      "type": "object", "additionalProperties": false, "required": ["status", "reason"],
+      "properties": {"status": {"enum": ["supported", "unsupported", "indeterminate"]}, "reason": {"type": "string", "minLength": 1, "maxLength": 128}}
+    },
+    "asset": {
+      "type": "object", "additionalProperties": false,
+      "required": ["asset_id", "relative_path", "kind", "presence", "byte_length", "modified_ns", "sha256", "verification_state", "media", "probe_status", "capabilities", "diagnostics"],
+      "properties": {
+        "asset_id": {"$ref": "#/$defs/id"}, "relative_path": {"$ref": "#/$defs/path"},
+        "kind": {"enum": ["audio", "image", "video", "unknown"]}, "presence": {"enum": ["present", "missing"]},
+        "byte_length": {"type": "integer", "minimum": 0}, "modified_ns": {"type": "integer", "minimum": 0},
+        "sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "verification_state": {"enum": ["verified", "carried_forward", "unverified"]},
+        "media": {"type": "object"}, "probe_status": {"enum": ["ok", "failed", "not_probed"]},
+        "capabilities": {"$ref": "#/$defs/capability"},
+        "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}}
+      }
+    }
+  }
+}

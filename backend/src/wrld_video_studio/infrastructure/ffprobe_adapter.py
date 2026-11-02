@@ -13,9 +13,10 @@ from wrld_video_studio.infrastructure.media_tools import MediaToolchain
 
 
 class FFprobeAdapter(MediaProber):
-    def __init__(self, toolchain: MediaToolchain, runner: ProcessRunner) -> None:
+    def __init__(self, toolchain: MediaToolchain, runner: ProcessRunner, *, timeout_seconds: float = 15.0) -> None:
         self.toolchain = toolchain
         self.runner = runner
+        self.timeout_seconds = timeout_seconds
 
     def probe(self, path: Path) -> MediaProbe:
         if not path.is_file():
@@ -23,10 +24,10 @@ class FFprobeAdapter(MediaProber):
         tool = self.toolchain.resolve("ffprobe")
         result = self.runner.run(
             [
-                str(tool.path), "-v", "error", "-show_format", "-show_streams",
+                str(tool.path), "-v", "error", "-count_frames", "-show_format", "-show_streams",
                 "-of", "json", str(path),
             ],
-            timeout_seconds=15.0,
+            timeout_seconds=self.timeout_seconds,
         )
         if result.timed_out:
             raise MediaInfrastructureError(
@@ -97,6 +98,11 @@ class FFprobeAdapter(MediaProber):
                         if isinstance(raw.get("color_primaries"), str)
                         else None
                     ),
+                    attached_picture=bool(
+                        isinstance(raw.get("disposition"), dict)
+                        and raw["disposition"].get("attached_pic") == 1
+                    ),
+                    frame_count=self._integer(raw.get("nb_read_frames") or raw.get("nb_frames")),
                 )
             )
         raw_format = document.get("format") or {}

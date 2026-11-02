@@ -239,6 +239,8 @@ class MediaStream:
     color_space: str | None = None
     color_transfer: str | None = None
     color_primaries: str | None = None
+    attached_picture: bool = False
+    frame_count: int | None = None
 
 
 @dataclass(frozen=True)

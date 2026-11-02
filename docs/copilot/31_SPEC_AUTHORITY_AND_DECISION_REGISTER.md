@@ -80,3 +80,34 @@ The player identity includes every pixel-affecting effect/player setting, resolv
 
 ## Example of proper refusal to invent
 `BLOCKED DECISION: The rich album example includes 'mood' text but no numeric energy; spec prohibits fabricating measurements. I will preserve mood text and use documented fallback; I will not synthesize energy=0.5.`
+
+## v2.5 design authority boundary
+Docs 41–44 are approved **UX direction and work-unit ownership**, not authority to invent exact schemas, routes or renderer generations. The eight historical Phase 0 blockers in Doc 44 were subsequently resolved sufficiently for the uncommitted Phase 1 backend candidate; their current disposition must be read from the revised Doc 44 and verified against source. The reconciled later ownership is WU4 Import/Review, WU5 Metadata, WU6 Rendering/batch operations, WU7 advanced layered composition, and WU8 imported video sources/clip playlists. Existing WU3A/WU3B generation and acceptance decisions in this document remain controlling.
+
+## v2.6 WU4 Phase 2R authority boundary
+
+Doc 45 is approved product architecture for unified flexible ingestion and the Phase 2R sequence. It supersedes album-manifest-required **WU4 registration UX** only; it does not supersede WU3 render schemas, output identities, verification or acceptance.
+
+Doc 46 is the approved Phase 2R technical contract. Approved decisions include: `wrld-project-catalog/2.0`, `wrld-project-inventory/1.0`, `wrld-project-scan/1.0` and session-only `wrld-import-handoff/1.0`; stable opaque identities; optional manifest enrichment; atomic recoverable v1→v2 migration; transactional inventories; two-stage observations plus mandatory strong SHA-256 at dependency/relink/render boundaries; user-confirmed relinking; initial overlap prohibition; asynchronous cancellable scans with typed budget diagnostics and administrator retry ceilings; the initial media/MIME/image-safety matrix; opaque audio/image/thumbnail routes; inventory/dependency fingerprint separation; independent Import runtime; generated TypeScript transport types plus shared fixtures; and WU6 ownership of the first solid-color renderer generation.
+
+Approval of Doc 46 closed the Phase 2R.0 contract-decision gate but did not by itself authorize implementation. A later Functional Import authorization satisfied the Phase 2R.1–2R.3 implementation gates; their uncommitted implementation candidates still require acceptance evidence. Phase 2B's durable composition schema and WU6's solid-color renderer profile remain later contract gates. Existing WU3 render behavior and Phase 1 public contracts remain controlling compatibility requirements.
+
+## v2.7 consolidated WU4 decision register
+
+The consolidated WU4 authorization approves a project-level Import model: discovered safe assets are included by default; stable-identity exclusions are reversible, persistent and separate from technical inventories; Import does not select a workflow or order tracks. `wrld-import-handoff/2.0` identifies the project plus inventory and preference revisions. Existing v1 handoffs remain readable compatibility input.
+
+Review retains the top-level four-screen architecture and adds **Media | Creation | Editor** subworkspaces. The additive `wrld-creation-state/1.0` document owns stable album plans, duplicate-permitted album assignments, independent Single drafts, independent Short drafts, archival/restoration and strong source dependencies. Duplicate assignments warn but do not block. Existing manifest-backed primary Short identities/ranges/settings/approval are carried forward when the Creation document is first initialized. Explicit Save, optimistic revision checks, changed/missing-source diagnostics and local unsaved undo/redo apply.
+
+The preferred Short duration is 45 seconds and may be configured from 20 through 120 seconds. A future evidence-backed analyzer may recommend within ±15 seconds; five seconds is the absolute minimum unless the entire source is shorter, in which case review is required and approval is forbidden. Analyzer actions remain disabled until an approved observation contract exists. These decisions do not authorize final Short rendering, metadata, advanced layers or imported-video composition.
+
+## v2.8 WU4 Editor UX refinement register
+
+Doc 50 is the specific authority for active-output Editor category availability, collapsed/grouped Creation warnings, the explicit one-click sole-image suggestion for newly created templates, and bulk shared-template reference assignment. It does not amend the Creation v2 payload, deterministic migration, null template default, explicit Save/revision protocol, or WU3 rendering. Independent-copy assignment is specified but separately gated. Creation-template render admission, including the pending treatment of excluded images, remains WU6 scope.
+
+## v2.9 WU4 composition-owned visual-settings supersession
+
+The revised Doc 50 is the specific authority for Creation v4 and deliberately supersedes the active shared-template editing semantics implemented in WU4 Phases 1–3. The governing rule is **Templates supply settings; compositions own settings.** Every v4 Album, Single, and Short stores required authoritative `visual_configuration`; nullable `source_visual_template_id` is historical provenance only and never a live dependency. Exact template matching is derived rather than persisted.
+
+The explicit v3→v4 migration copies each resolvable concrete template configuration into every active and archived composition while preserving identities, ordering, approvals, customization, templates, and families. Non-null dangling references reject atomically. A null v3 reference may migrate only when another complete authoritative configuration is present; otherwise lossless migration is blocked and no defaults are synthesized. Migration, cleanup, and production-data mutation never occur automatically.
+
+V4 retains the three-member Album/Single/Short family registry as reusable library presets. Conservative legacy cleanup removes only verified generated artifacts after a previewable plan, explicit authorization, and exact revision/fingerprint revalidation. Phase 4A supplies the contract, migration, validation, persistence, cleanup foundation, frontend compatibility block, and documentation. Phase 4B owns composition/template-library UI. WU6 still owns renderer admission and v4-to-renderer mapping; no WU3 contract changes.

@@ -1,5 +1,9 @@
 # Media quality, regression, and resource testing — v1.1
 
+## WU3B motion-regression allocation
+
+Doc 39 adds required generated-frame checks for crop-safe continuous camera motion, deterministic RMS amplitude bars, silence baseline, fixed overlay zones, and sample-boundary track-progress resets. Tests use the approved 30 fps/48 kHz mapping, include boundaries not divisible by 1,600 samples, and prove that audio order/content and WU3A static output behavior remain unchanged. Decode comparisons use reviewed pixel/geometry tolerances rather than MP4 hashes. A bounded real preview and one full real track require Windows human review; that evidence remains separate from WU3A's pending full-album acceptance.
+
 ## Three verification layers
 1. **Structural:** ffprobe JSON: H.264 video + AAC audio, dimensions 1920x1080 or 1080x1920 in production, 30 fps nominal, yuv420p, nonzero streams/duration, sensible audio sample rate; test resolution may be reduced. Explicitly define tolerances (e.g., video duration within 2 frames + 0.15 s of expected; adjust only with documented encoder evidence).
 2. **Audio content:** synthetic per-track sine tones at distinct frequencies; decode rendered excerpts to PCM and verify dominant spectral energy near expected tone. Test wrong-track selection, offset, fade boundaries, first/last samples with codec-tolerant windows, and compilation transition order. For accurate excerpt boundaries, use a time-varying fixture (chirp or distinct tone segments), not a constant tone alone.
@@ -9,7 +13,7 @@
 - Unit: no FFmpeg or browser; deterministic, fast; mocks for subprocess, file IO failure, job scheduler, and preview generation.
 - Media integration: FFmpeg/FFprobe required; 2–4 second WAVs, small test frames, temp dirs, no copyrighted assets. Validate actual decoding and content, not merely file existence.
 - UI/browser: Wavesurfer component with Playwright: region move, resize, start/end exactness, playback stop, replay, multiple regions, track switch, persisted state. Browser tests are required before WU5 completion, not during WU1.
-- Manual Windows acceptance: real 12-track album, Unicode and long paths, reopen after edit, cancel during render, resume and verify, inspect 16:9 and 9:16 outputs.
+- Manual Windows acceptance: WU3A requires the real 12-track *Echoes of Asia* project path to be supplied explicitly, the album plus at least one individual full-track MP4 to be published in the approved project-local tree, both artifacts to be probed/decoded through EOF, and the album to be checked at chapter/track transitions and reviewed in VLC or Windows Media Player. Confirm the corrected supplied background, ordered audio, and source preservation. An external acceptance harness may compare the publishing file before/after, but the WU3A application must not open, validate, hash, or write `youtube_metadata.json`. Record project/output paths as environment-specific evidence, not portable schema defaults. WU4–WU6 later add reopen-after-edit, integrated cancellation/recovery UI, Shorts, and 9:16 acceptance.
 - Soak/performance: optional nightly/manual profile of 12 synthetic tracks and multiple Shorts; cap concurrent FFmpeg at one; monitor peak RSS, file descriptors/handles, temp disk usage, and cleanup. Set thresholds based on baseline machine measurements, not invented universal limits.
 
 ## Failure injection tests

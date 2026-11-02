@@ -1,3 +1,43 @@
+## Unreleased — consolidated WU4 candidate
+
+- Adds the Phase 4A Creation v4 foundation and Phase 4B native authoring workflow: composition-owned authoritative visual settings, historical template provenance, deterministic sequential upgrades, isolated composition editing, role-aware Apply/Update/Save-as-New template actions, a searchable family/standalone Template Library, and conservative explicit legacy cleanup. WU3 rendering remains unchanged and WU6 mapping remains deferred.
+- Adds flexible trusted-root project registration, bounded recursive media inventory, secure audio/image resources, persistent reversible exclusions and a project-level Import-to-Review handoff.
+- Adds revision-safe Creation planning for Albums, Singles and Shorts, including stable duplicate assignments, independent draft counts, archive/restore, editable sample-frame excerpts, missing/changed-source issues and preservation of existing primary Short identities.
+- Adds generated TypeScript transports, a production-intended React Import/Review/Creation flow, explicit analyzer-unavailable states and a configurable local `serve-import` launcher. WU5–WU8 behavior remains deferred.
+- Corrects the post-implementation audit findings: Creation/Editor dirty-navigation protection, authoritative Editor saves through the Creation document, deterministic legacy-primary reconciliation, persisted scan attempts and restart recovery, multi-draft archive/restore, host-aware path identity and collision rejection, actionable source recovery, bounded Short controls, capability-aware media UI, adversarial M4A/multiframe rejection, and read-after-write reconciliation for indeterminate commits.
+- Adds focused backend/frontend regressions for restart/cancel/retry, stable draft identities, conflict and reload behavior, source fingerprints, duplicate occurrence navigation, unsupported capabilities, keyboard waveform edits and save-outcome reconciliation. The candidate remains uncommitted and pending manual UI acceptance.
+
+## Unreleased — WU3 final remediation
+
+- Adds the Phase D corrected renderer/presentation generation (`wu3b-player-export-2`, `wrld-player-presentation/2.0`) so repaired pixels publish under a new digest-qualified directory while existing verified player artifacts remain intact and reusable.
+- Corrects compact `gray16le` visualizer reconstruction with explicit 16-bit/full-range alpha conversion, reconnects album/track progress commands to the live compact-control graph, and uses a bounded 2× camera working canvas for subpixel-capable Phase D motion while keeping overlays stationary.
+- Replaces Phase D's full-duration per-bar `sendcmd` list with a compact one-row-per-frame bar control stream, preventing FFmpeg 9.0.2 from stalling before its first frame while preserving the exact RMS heights, player composition, glow, progress, and output contract.
+- Reconciles crash-interrupted export attempts before request-digest retry selection and makes synchronous CLI execution claim the exact submitted job/attempt, preserving historical diagnostics while preventing an older queued job from being reported as the requested export.
+- Removes the Windows process-start/Job Object assignment race by launching children suspended, assigning the kill-on-close Job Object through the owned process handle, and resuming only after ownership succeeds. Structured internal diagnostics now identify the failing Win32 stage/code without weakening the public `PROCESS_OWNERSHIP_FAILED` contract.
+- Tightens v4 result schema/runtime parity, adds deterministic Windows destination/staging preflight, and shortens application-owned staging/diagnostic keys without changing public output names.
+- Bounds motion-preview PCM work to intersecting excerpt windows plus finite RMS analysis margin, caps distinct running/queued preview identities at four, preserves same-flight sharing, and adds conservative lock-based abandoned-preview reconciliation.
+- Enforces newly approved 4.5:1 ordinary and 3:1 large-text contrast policy against the composited footer; derived colors may be corrected while noncompliant manual overrides are rejected.
+- Adds Unicode glyph-coverage validation, observable diagnostic fallback, CLI shutdown error reporting, and Windows/Ubuntu WU3B/Phase D media capability coverage.
+- Records October 27, 2026 human acceptance of the reviewed label-free Phase D presentation. WU3A full-album/full-track acceptance remains pending and independent.
+
+## WU3A implementation candidate
+- Adds versioned video manifest, export request/result, and render-report schemas plus contract tests.
+- Adds secure album-project validation, attempt-owned input snapshots, normalized 48 kHz stereo PCM timelines, deterministic chapters, album/track H.264/AAC rendering, complete decode verification, collision-safe publication, revisioned reports, recovery, and the approved headless CLI.
+- Integrates product exports through request-specific handlers on the existing single worker and shared render-admission lane; no second scheduler is introduced.
+- Corrects static-image BT.709 conversion by selecting the BT.709 RGB-to-YUV matrix and assigning frame-level space/transfer/primaries while retaining strict encoder/probe checks. A short album and track passed against the approved local Gyan FFmpeg/FFprobe 9.0.2 build; no direct x264 VUI override was needed.
+- Adds private versioned failure diagnostics and durable phase progress, plus throttled CLI stderr reporting with machine-readable final JSON preserved on stdout. Progress readers and writers are serialized so Windows file-sharing behavior cannot fail a render.
+- Adds generated-media Windows/Ubuntu CI coverage. Real *Echoes of Asia* full-track/full-album rendering and human playback acceptance remain pending; the full album was not rerendered during this repair.
+- Records that the current Echoes manifest was manually migrated to `wrld-video-album/1.0` and now passes the implemented schema/source checks. No application workflow rewrites album manifests.
+
+## v2.0 — WU3A video-export roadmap alignment
+- Inserts WU3A between completed WU3 and future WU4 without renumbering WU4–WU6.
+- Defines WU3A as the first functional album/individual-track MP4 export unit, reusing the existing lifecycle, process ownership, staging, verification, cancellation, recovery, and shared admission infrastructure.
+- Requires static-image H.264/AAC export, exact probed timeline, YouTube-compatible chapters, a supported headless PowerShell entry point, real-media CI, and full *Echoes of Asia* automated plus human playback acceptance.
+- Moves first product video generation out of WU6 while retaining React Import/Review in WU4, Metadata review/approval in WU5, and integrated Render UX/Shorts/release acceptance in WU6.
+- Records approval of all eight WU3A contract decisions: schemas, output profile, image fit, sample-derived chapters, deterministic collision-safe outputs, headless CLI, corrected acceptance artwork, and deferred generated typography. No WU3A implementation is claimed.
+- Defines the caller-selected album directory as the WU3A project/security boundary, with portable manifest paths and generated artifacts under `<album-project>/output/`; the current `WORLD_MUSIC\WRLD-FI\Albums` convention is an acceptance default, not a hardcoded dependency.
+- Locks the exact `output/{album,tracks,shorts,metadata}` contract, metadata ownership boundaries, versioned manifest/request/result/report contracts, one 1080p30 encoding profile, image-fit/timeline/chapter policies, collision-safe names/reuse, and the headless CLI. WU3A is forbidden from reading or producing `youtube_metadata.json`; no implementation is claimed.
+
 ## v1.8 — WU0 findings resolved for WU1
 - Authoritative foundation-only WU1 scope and WU1–WU6 dependency graph.
 - Clarified read-only legacy boundary and eliminated obsolete Streamlit/legacy WU1 acceptance requirements by explicit supersession.

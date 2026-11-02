@@ -13,9 +13,10 @@ from wrld_video_studio.infrastructure.media_tools import MediaToolchain
 
 
 class FFprobeAdapter(MediaProber):
-    def __init__(self, toolchain: MediaToolchain, runner: ProcessRunner) -> None:
+    def __init__(self, toolchain: MediaToolchain, runner: ProcessRunner, *, timeout_seconds: float = 15.0) -> None:
         self.toolchain = toolchain
         self.runner = runner
+        self.timeout_seconds = timeout_seconds
 
     def probe(self, path: Path) -> MediaProbe:
         if not path.is_file():
@@ -23,10 +24,10 @@ class FFprobeAdapter(MediaProber):
         tool = self.toolchain.resolve("ffprobe")
         result = self.runner.run(
             [
-                str(tool.path), "-v", "error", "-show_format", "-show_streams",
+                str(tool.path), "-v", "error", "-count_frames", "-show_format", "-show_streams",
                 "-of", "json", str(path),
             ],
-            timeout_seconds=15.0,
+            timeout_seconds=self.timeout_seconds,
         )
         if result.timed_out:
             raise MediaInfrastructureError(
@@ -67,6 +68,7 @@ class FFprobeAdapter(MediaProber):
             codec_type = raw.get("codec_type")
             if index is None or not isinstance(codec_type, str):
                 raise ValueError("stream index and codec_type are required")
+            time_base = self._fraction(raw.get("time_base"))
             streams.append(
                 MediaStream(
                     index=index,
@@ -78,7 +80,29 @@ class FFprobeAdapter(MediaProber):
                     height=self._integer(raw.get("height")),
                     frame_rate=self._rational(raw.get("avg_frame_rate")),
                     duration_seconds=self._finite_positive(raw.get("duration")),
+                    duration_ts=self._integer(raw.get("duration_ts")),
+                    time_base_numerator=(time_base.numerator if time_base is not None else None),
+                    time_base_denominator=(time_base.denominator if time_base is not None else None),
                     pixel_format=raw.get("pix_fmt") if isinstance(raw.get("pix_fmt"), str) else None,
+                    profile=raw.get("profile") if isinstance(raw.get("profile"), str) else None,
+                    color_space=(
+                        raw.get("color_space") if isinstance(raw.get("color_space"), str) else None
+                    ),
+                    color_transfer=(
+                        raw.get("color_transfer")
+                        if isinstance(raw.get("color_transfer"), str)
+                        else None
+                    ),
+                    color_primaries=(
+                        raw.get("color_primaries")
+                        if isinstance(raw.get("color_primaries"), str)
+                        else None
+                    ),
+                    attached_picture=bool(
+                        isinstance(raw.get("disposition"), dict)
+                        and raw["disposition"].get("attached_pic") == 1
+                    ),
+                    frame_count=self._integer(raw.get("nb_read_frames") or raw.get("nb_frames")),
                 )
             )
         raw_format = document.get("format") or {}
@@ -125,3 +149,13 @@ class FFprobeAdapter(MediaProber):
         except (ValueError, ZeroDivisionError, OverflowError):
             return None
         return parsed if math.isfinite(parsed) and parsed > 0 else None
+
+    @staticmethod
+    def _fraction(value: Any) -> Fraction | None:
+        if not isinstance(value, str):
+            return None
+        try:
+            parsed = Fraction(value)
+        except (ValueError, ZeroDivisionError, OverflowError):
+            return None
+        return parsed if parsed > 0 else None

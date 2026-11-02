@@ -11,9 +11,9 @@ Do not make Video Studio depend on the Analyzer, a live LLM, or a fixed emotion 
 3. **Video Studio editor overrides**: user-edited Short regions, color choices, approved titles/descriptions; atomic, revisioned, editable. Never write into canonical or Analyzer inputs.
 4. **Generated drafts / immutable job snapshot / render report**: separate versioned artifacts. Generated defaults are replaceable; approved edits are not.
 
-## Import pipeline
+## Album-metadata enrichment pipeline
 - Read and schema-validate supported input format; detect format via `schema_version` and explicit adapter, not by guessing individual fields.
-- Normalize to internal Album/Track models. Preserve stable album, track, Short and recording identities; never use array index as recording identity.
+- When a recognized manifest or creative metadata source is present, normalize it to internal Album/Track enrichment models. Preserve stable album, track, Short and recording identities; never use array index as recording identity.
 - Resolve paths relative to the source manifest, with safe filesystem access; verify WAV and artwork; FFprobe exact duration/sample rate/channels; never trust a declared duration as measured truth.
 - Merge Analyzer data **only** by verified recording ID. Unknown IDs, duplicate IDs, conflicting identity or stale analysis => warning and quarantine rather than silent association.
 - Preserve nullable unknown fields. `mood_text` and scene prose are unrestricted UTF-8 strings. Missing numeric energy/tension/brightness/valence/arousal remain null. Validate supplied numbers finite and within [0,1]; do not invent values.
@@ -33,3 +33,10 @@ Use `docs/examples/metadata_contract.example.json` as a rich example. Also test 
 
 ## Scope
 This document specifies a future ingestion adapter; it does not claim v1.5 code already supports the rich example. WU0 should reconcile contracts; implementation only after authorization.
+
+## v2.5 import integration note
+Successful album import should trigger metadata draft generation **when WU5 is implemented**; WU4 may display pending state. Preserve existing four independent records, precedence, staleness, and provenance. No automatic approval or publication.
+
+## WU4 flexible-registration boundary
+
+This document does not require a manifest or metadata file for WU4 project registration. Docs 45–46 separate trusted project registration and recursive asset inventory from optional album/metadata enrichment. Manifestless projects remain valid inventory projects but have no album/track identity until the user supplies or approves an owning composition/metadata contract. WU4 must not infer canonical album, track, recording, genre or publishing identity from filenames or folder names.

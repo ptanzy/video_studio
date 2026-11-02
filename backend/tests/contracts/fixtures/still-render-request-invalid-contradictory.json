@@ -1,0 +1,19 @@
+{
+  "contract_version": "still-render-request-v1",
+  "source_path": "artwork/cover.png",
+  "output_relative_path": "previews/treated.png",
+  "resolution": {
+    "contract_version": "color-resolution-output-v1",
+    "mode": "custom",
+    "resolved_hex": null,
+    "preset_id": "original",
+    "intensity": 0.3,
+    "source": "fallback",
+    "reason": "explicit_preset",
+    "resolver_version": "1.0.0-provisional.1",
+    "preset_mapping_version": "provisional-1",
+    "input_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "renderer_version": "ffmpeg-still-v1",
+  "transform_version": "linear-luma-chroma-v1"
+}

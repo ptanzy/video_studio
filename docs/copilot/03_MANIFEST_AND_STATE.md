@@ -5,7 +5,7 @@
 - `render_overrides.json`: editor-only bounded presentation changes and Short edits; atomic write with backup or temp-file + rename. Do not modify canonical WRLD-FI metadata.
 - `render_report.json`: machine-generated observations and outputs; **never** use as user configuration.
 - `schema_version`: mandatory for new format; implement explicit migration/legacy adapter.
-- Paths relative to manifest directory; reject missing/unreadable paths and unsafe output-inside-source overwrites. Do not require a network service.
+- The explicitly selected album directory is the project boundary. Persist artwork, audio, artifact, and publishing references relative to that boundary wherever appropriate; reject missing/unreadable paths, traversal, link/reparse escapes, and unsafe source/output aliasing. Do not require a network service or persist the current machine's library/repository prefix.
 
 ## Proposed example (illustrative; not supported by legacy v2 until implemented)
 ```json
@@ -45,7 +45,7 @@
 `10_CONTRACTS_AND_COMPATIBILITY.md` is normative for schema validation, override revisions, atomic saves, legacy adaptation and frozen job snapshots. Do not assume an atomic replace alone solves concurrent editor sessions. Never mutate canonical album JSON.
 
 ## v1.2 metadata boundary
-The canonical album manifest, analysis metadata sidecar, mutable editor overrides, immutable render request, and render result are distinct contracts. Preserve recording identity; do not require custom analysis metadata to be embedded in WAV. Support absent analysis metadata. See doc 14.
+The canonical album manifest, project registry, asset inventory, optional manifest-enrichment record, mutable editor overrides, immutable render request, and render result are distinct contracts. A WU4 project may be registered and inventoried without an album manifest; that does not make it renderable. Preserve recording identity; do not require custom analysis metadata to be embedded in WAV. Support absent analysis metadata. See Docs 14, 45, and 46.
 
 
 ## v1.4 editor override extensions
@@ -53,3 +53,20 @@ Color uses discriminated `color_treatment` (auto/preset/custom), not a free-form
 
 ## v1.6 authoritative clarification
 The minimal manifest schema (`contracts/schemas/manifest-v2.schema.json`) and the **rich illustrative metadata contract** (`docs/examples/metadata_contract.example.json`) are different shapes. Do not claim direct schema compatibility; implement an explicit adapter and test it. Source creative album JSON, optional Analyzer sidecar keyed by recording ID, editor overrides, generated publishing drafts, immutable render snapshots, and render reports are distinct. Unknown `mood_text` is valid unrestricted text. Supplied `energy`, `tension`, `brightness`, `valence`, `arousal` are optional nullable finite [0,1] values. Preserve original inputs; no invented measured values. See 24–26.
+
+## WU3A render-contract boundary
+
+Doc 38 requires the approved versioned product render request for album and individual-track export. Neither the illustrative JSON above nor `manifest-v2.schema.json` is that request. The headless interface receives an explicit runtime album-project path; portable persisted contracts do not embed its machine-specific absolute prefix. Decision 1 approves `video-manifest-v1.schema.json` (`wrld-video-album/1.0`), `video-export-request-v1.schema.json` (`video-export-request/1.0`), and `video-export-result-v1.schema.json` (`video-export-result/1.0`). The portable manifest holds stable identity, project-relative artwork/audio, ordered tracks, optional stable clip definitions, and an allowlisted profile ID; the immutable request selects album/track and profile; the result contains factual verified artifacts/timeline only. Probed durations, normalized sample counts, offsets, tool identity, resolved runtime paths, and measured output belong in the frozen job snapshot/result, not portable publishing metadata. WU3A does not read any `youtube_metadata.json`.
+
+Historical `wrld-video-album/0.1-draft` files remain diagnostic adapter input, not automatically valid render input. The current *Echoes of Asia* project has since been manually migrated to `wrld-video-album/1.0` with approved stable IDs and exact artwork references and passes the implemented schema/source checks. Never guess identities or filenames or rewrite another draft silently.
+
+## WU3B contract boundary
+
+The earlier illustrative `video.compilation`/override examples in this document are not WU3B schemas and do not define field names, bounds, presets, or effect ownership. Doc 39 proposes an additive `wrld-video-album/2.0` project manifest plus complete immutable v2 export requests while leaving WU3A v1 untouched. Its exact v2 shapes remain pending explicit approval. Source project data, revisioned editor state, immutable export requests, private preview attempts, and factual render reports remain distinct; no implementation may infer a WU3B contract from the illustrative JSON above.
+
+## Future inheritance and draft-state design (not yet a schema)
+Docs 41–45 describe global → genre → album → track → Short effective settings, explicit approval separate from saved drafts, and the flexible project/inventory boundary. Preserve existing revisioned state, stable IDs, and stale-source contracts. Local unsaved undo/redo does not create durable history; server autosave and durable versions remain deferred. Doc 46 approves additive versioned registry/inventory contracts and migration behavior; executable schemas and migration code remain unimplemented and separately gated.
+
+## WU4 registry versus render-manifest scope
+
+The manifest requirements above govern normalized album data and WU3 render inputs. They do **not** require every WU4 registered project to contain `video_manifest.json`, audio, or artwork. Under Doc 45, Import first registers a trusted directory boundary and inventories assets. A recognized manifest may enrich that inventory through a versioned adapter. Only a later composition/render adapter may construct an approved immutable WU3 request, and it must still satisfy the applicable WU3 schema and source validation without rewriting the source manifest.

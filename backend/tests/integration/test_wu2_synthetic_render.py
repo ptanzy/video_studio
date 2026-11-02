@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from wrld_video_studio.application.media_jobs import MediaJobs, RenderWorker
+from wrld_video_studio.application.render_coordination import ProcessLocalRenderAdmission
 from wrld_video_studio.domain.jobs import JobState
 from wrld_video_studio.domain.media_errors import MediaInfrastructureError
 from wrld_video_studio.infrastructure.artifact_store import FilesystemArtifactStore
@@ -59,6 +60,7 @@ def _services(tmp_path, schema_dir, source_root):
         verifier,
         artifacts,
         source_root,
+        admission=ProcessLocalRenderAdmission(),
         event_sink=JsonlJobEventSink(tmp_path / "events"),
     )
     return repository, worker, prober, ffmpeg, ffprobe

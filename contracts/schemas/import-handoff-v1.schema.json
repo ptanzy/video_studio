@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/import-handoff-v1.schema.json",
+  "title": "WRLD session import handoff v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["contract_version", "project_id", "inventory_revision", "workflow", "audio_assets"],
+  "properties": {
+    "contract_version": {"const": "wrld-import-handoff/1.0"}, "project_id": {"$ref": "#/$defs/id"},
+    "inventory_revision": {"type": "integer", "minimum": 0},
+    "workflow": {"enum": ["individual", "compilation", "individual_and_compilation", "short_review"]},
+    "audio_assets": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["asset_id", "sha256"], "properties": {"asset_id": {"$ref": "#/$defs/id"}, "sha256": {"$ref": "#/$defs/sha256"}}}}
+  },
+  "$defs": {"id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

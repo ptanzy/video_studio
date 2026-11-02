@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/video-export-result-v1.schema.json",
+  "title": "WRLD Video Export Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "job_id", "attempt_id", "state", "target", "request_digest", "artifacts", "warnings", "started_at", "finished_at"],
+  "properties": {
+    "contract_version": {"const": "video-export-result/1.0"},
+    "job_id": {"type": "string", "minLength": 1},
+    "attempt_id": {"type": "string", "minLength": 1},
+    "state": {"enum": ["completed", "failed", "cancelled"]},
+    "target": {"$ref": "#/$defs/target"},
+    "request_digest": {"$ref": "#/$defs/sha256"},
+    "artifacts": {"type": "array", "items": {"$ref": "#/$defs/artifact"}},
+    "timeline": {"type": "array", "items": {"$ref": "#/$defs/timelineEntry"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "target": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {"kind": {"const": "album"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "track_id"],
+          "properties": {
+            "kind": {"const": "track"},
+            "track_id": {"type": "string", "minLength": 1, "maxLength": 128}
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "sha256", "byte_size", "verification"],
+      "properties": {
+        "kind": {"enum": ["album_video", "track_video", "chapters"]},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "byte_size": {"type": "integer", "minimum": 0},
+        "verification": {"const": "verified"},
+        "media": {"type": "object"}
+      }
+    },
+    "timelineEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["track_id", "number", "title", "start_sample", "sample_count", "display_seconds"],
+      "properties": {
+        "track_id": {"type": "string", "minLength": 1},
+        "number": {"type": "integer", "minimum": 1},
+        "title": {"type": "string", "minLength": 1},
+        "start_sample": {"type": "integer", "minimum": 0},
+        "sample_count": {"type": "integer", "minimum": 1},
+        "display_seconds": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

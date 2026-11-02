@@ -1,0 +1,5 @@
+{
+  "contract_version": "video-export-request/1.0",
+  "target": {"kind": "album"},
+  "profile_id": "youtube-1080p30-v1"
+}

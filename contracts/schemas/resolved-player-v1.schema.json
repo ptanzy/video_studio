@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/resolved-player-v1.schema.json",
+  "title": "WRLD Resolved Player Configuration v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["layout", "theme", "font_sha256", "display_tracks"],
+  "properties": {
+    "font_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "layout": {"type": "object", "additionalProperties": false,
+      "required": ["layout_version", "safe_area", "footer", "progress_row", "metadata_row", "visualizer", "visualizer_glow", "announcement"],
+      "properties": {"layout_version": {"const": "wrld-player-layout/1.0"},
+        "safe_area": {"$ref": "#/$defs/rect"}, "footer": {"$ref": "#/$defs/rect"}, "progress_row": {"$ref": "#/$defs/rect"},
+        "metadata_row": {"$ref": "#/$defs/rect"}, "visualizer": {"$ref": "#/$defs/rect"}, "visualizer_glow": {"$ref": "#/$defs/rect"}, "announcement": {"$ref": "#/$defs/rect"}}
+    },
+    "theme": {"type": "object", "additionalProperties": false,
+      "required": ["artwork_sha256", "palette_algorithm_version", "mode", "preset", "dominant_color", "colors", "provenance"],
+      "properties": {
+        "artwork_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "palette_algorithm_version": {"const": "wrld-artwork-palette/1.0"},
+        "mode": {"enum": ["automatic", "manual", "hybrid"]}, "preset": {"enum": ["subtle", "balanced", "vibrant"]}, "dominant_color": {"$ref": "#/$defs/hex"},
+        "colors": {"type": "object", "additionalProperties": false, "required": ["footer_background", "primary_text", "secondary_text", "progress_fill", "progress_rail", "visualizer"],
+          "properties": {"footer_background": {"$ref": "#/$defs/hex"}, "primary_text": {"$ref": "#/$defs/hex"}, "secondary_text": {"$ref": "#/$defs/hex"}, "progress_fill": {"$ref": "#/$defs/hex"}, "progress_rail": {"$ref": "#/$defs/hex"}, "visualizer": {"$ref": "#/$defs/hex"}}},
+        "provenance": {"type": "object", "additionalProperties": false, "required": ["footer_background", "primary_text", "secondary_text", "progress_fill", "progress_rail", "visualizer"],
+          "properties": {"footer_background": {"$ref": "#/$defs/provenance"}, "primary_text": {"$ref": "#/$defs/provenance"}, "secondary_text": {"$ref": "#/$defs/provenance"}, "progress_fill": {"$ref": "#/$defs/provenance"}, "progress_rail": {"$ref": "#/$defs/provenance"}, "visualizer": {"$ref": "#/$defs/provenance"}}}
+      }
+    },
+    "display_tracks": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false,
+      "required": ["track_id", "album_title", "track_title", "bpm", "bpm_provenance", "musical_key", "key_provenance", "parent_channel", "genre_channel"],
+      "properties": {"track_id": {"type": "string", "minLength": 1}, "album_title": {"type": "string", "minLength": 1}, "track_title": {"type": "string", "minLength": 1},
+        "bpm": {"type": ["string", "null"]}, "bpm_provenance": {"enum": ["analyzed", "intended", null]}, "musical_key": {"type": ["string", "null"]}, "key_provenance": {"enum": ["analyzed", "intended", null]},
+        "parent_channel": {"type": "string", "minLength": 1}, "genre_channel": {"type": "string", "minLength": 1}}
+    }}
+  },
+  "$defs": {
+    "rect": {"type": "object", "additionalProperties": false, "required": ["x", "y", "width", "height"], "properties": {"x": {"type": "integer"}, "y": {"type": "integer"}, "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}}},
+    "hex": {"type": "string", "pattern": "^#[0-9A-F]{6}$"},
+    "provenance": {"enum": ["artwork", "manual", "derived"]}
+  }
+}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,14 +17,22 @@ class MediaTool:
 
 
 class MediaToolchain:
-    def __init__(self, runner: ProcessRunner) -> None:
+    def __init__(self, runner: ProcessRunner, configured_paths: dict[str, Path] | None = None) -> None:
         self.runner = runner
+        self.configured_paths = dict(configured_paths or {})
+        self._cache: dict[str, MediaTool] = {}
+        self._lock = threading.Lock()
 
     def resolve(self, name: str) -> MediaTool:
         if name not in {"ffmpeg", "ffprobe"}:
             raise ValueError("Only ffmpeg and ffprobe are supported media tools")
+        with self._lock:
+            cached = self._cache.get(name)
+        if cached is not None:
+            return cached
         env_name = "WRLD_FFMPEG_PATH" if name == "ffmpeg" else "WRLD_FFPROBE_PATH"
-        configured = os.environ.get(env_name)
+        configured_path = self.configured_paths.get(name)
+        configured = str(configured_path) if configured_path is not None else os.environ.get(env_name)
         if configured:
             candidate = Path(configured).expanduser()
             if not candidate.is_absolute():
@@ -38,7 +47,13 @@ class MediaToolchain:
                     "MEDIA_TOOL_MISSING", f"{name} was not found on PATH or configured path."
                 )
             executable = Path(found).resolve()
-        if not executable.is_file():
+        try:
+            is_file = executable.is_file()
+        except OSError as error:
+            raise MediaInfrastructureError(
+                "MEDIA_TOOL_MISSING", f"Configured {name} executable is not accessible."
+            ) from error
+        if not is_file:
             raise MediaInfrastructureError(
                 "MEDIA_TOOL_MISSING", f"Configured {name} executable does not exist."
             )
@@ -50,4 +65,7 @@ class MediaToolchain:
                 {"stderr_tail": self.runner.sanitize_diagnostic(result.stderr_tail)},
             )
         version = result.stdout.splitlines()[0].strip()
-        return MediaTool(executable, version)
+        tool = MediaTool(executable, version)
+        with self._lock:
+            self._cache[name] = tool
+        return tool

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/import-handoff-v2.schema.json",
+  "title": "WRLD project import handoff v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "project_id", "inventory_revision", "preferences_revision"],
+  "properties": {
+    "contract_version": {"const": "wrld-import-handoff/2.0"},
+    "project_id": {"$ref": "#/$defs/id"},
+    "inventory_revision": {"type": "integer", "minimum": 0},
+    "preferences_revision": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"}
+  }
+}

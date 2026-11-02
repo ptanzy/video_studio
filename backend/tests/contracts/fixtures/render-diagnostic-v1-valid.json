@@ -1,0 +1,30 @@
+{
+  "contract_version": "wrld-render-diagnostic/1.0",
+  "job_id": "job-1",
+  "attempt_id": "attempt-1",
+  "request_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "failure_phase": "probing_output",
+  "error": {
+    "code": "OUTPUT_INVALID",
+    "message": "Output video color transfer check failed.",
+    "predicate": "video color transfer",
+    "expected": "bt709",
+    "actual": null
+  },
+  "ffmpeg_command": ["<tool:ffmpeg.exe>", "-i", "<path>"],
+  "ffmpeg_stderr_tail": "",
+  "toolchain": {
+    "ffmpeg": {"version": "ffmpeg version 9.0.2", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+    "ffprobe": {"version": "ffprobe version 9.0.2", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+  },
+  "probe": {
+    "streams": [{"codec_type": "video", "color_transfer": null}]
+  },
+  "cleanup": {
+    "outcome": "succeeded",
+    "error_code": null,
+    "started_at": "2026-10-25T12:00:01Z",
+    "finished_at": "2026-10-25T12:00:01Z"
+  },
+  "failed_at": "2026-10-25T12:00:01Z"
+}

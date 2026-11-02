@@ -1,0 +1,11 @@
+{
+  "contract_version": "preview-error-v1",
+  "error": {
+    "code": "PREVIEW_SOURCE_UNAVAILABLE",
+    "message": "The requested artwork source is unavailable.",
+    "details": {
+      "asset_id": "album-artwork-primary"
+    },
+    "correlation_id": "local-preview-001"
+  }
+}

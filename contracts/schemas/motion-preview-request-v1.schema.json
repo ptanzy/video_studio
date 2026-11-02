@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/motion-preview-request-v1.schema.json",
+  "title": "WRLD Motion Preview Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "target", "profile_id", "effects", "excerpt"],
+  "properties": {
+    "contract_version": {"const": "motion-preview-request/1.0"},
+    "profile_id": {"const": "youtube-1080p30-motion-v1"},
+    "effects": {"$ref": "https://wrld.local/schemas/video-effects-v1.schema.json"},
+    "target": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {"kind": {"const": "album"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "track_id"],
+          "properties": {
+            "kind": {"const": "track"},
+            "track_id": {"type": "string", "minLength": 1, "maxLength": 128}
+          }
+        }
+      ]
+    },
+    "excerpt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_sample", "sample_count"],
+      "properties": {
+        "start_sample": {"type": "integer", "minimum": 0},
+        "sample_count": {
+          "type": "integer",
+          "minimum": 144000,
+          "maximum": 720000,
+          "default": 240000
+        }
+      }
+    }
+  }
+}

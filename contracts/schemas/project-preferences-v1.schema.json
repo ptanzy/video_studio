@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/project-preferences-v1.schema.json",
+  "title": "WRLD project preferences v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "project_id", "revision", "save_id", "excluded_asset_ids", "state_digest"],
+  "properties": {
+    "contract_version": {"const": "wrld-project-preferences/1.0"},
+    "project_id": {"$ref": "#/$defs/id"},
+    "revision": {"type": "integer", "minimum": 1},
+    "save_id": {"$ref": "#/$defs/id"},
+    "excluded_asset_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/id"}
+    },
+    "state_digest": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

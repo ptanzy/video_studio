@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/project-catalog-v2.schema.json",
+  "title": "WRLD private project catalog v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "projects"],
+  "properties": {
+    "contract_version": {"const": "wrld-project-catalog/2.0"},
+    "revision": {"type": "integer", "minimum": 0},
+    "migration": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_contract_version", "source_digest"],
+      "properties": {
+        "source_contract_version": {"const": "wrld-project-catalog/1.0"},
+        "source_digest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["project_id", "root_id", "relative_path", "active", "registered_at", "updated_at", "enrichment", "inventory_revision"],
+        "properties": {
+          "project_id": {"$ref": "#/$defs/id"},
+          "root_id": {"$ref": "#/$defs/id"},
+          "relative_path": {"$ref": "#/$defs/path"},
+          "active": {"type": "boolean"},
+          "registered_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"},
+          "inventory_revision": {"type": "integer", "minimum": 0},
+          "availability": {"enum": ["available", "unavailable", "removed"]},
+          "album_id": {"$ref": "#/$defs/id"},
+          "enrichment": {
+            "oneOf": [
+              {"type": "null"},
+              {
+                "type": "object", "additionalProperties": false,
+                "required": ["status", "manifest_format", "album_id"],
+                "properties": {
+                  "status": {"enum": ["recognized", "invalid"]},
+                  "manifest_format": {"type": ["string", "null"], "maxLength": 128},
+                  "album_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]}
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "path": {"type": "string", "maxLength": 1024, "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).*$"}
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "contract_version": "preview-request-v1",
+  "target": {
+    "album_id": "WRLD-FI-S01-A08",
+    "artwork_asset_id": "album-artwork-primary",
+    "track_id": "S01-A08-T01",
+    "short_id": "S01-A08-T01-S01"
+  },
+  "treatment": {
+    "mode": "custom",
+    "hex": "#aBcDeF",
+    "intensity": 0.3
+  },
+  "variant": "authoritative_still"
+}

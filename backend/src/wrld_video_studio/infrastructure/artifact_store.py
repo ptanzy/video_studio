@@ -25,15 +25,16 @@ class FilesystemArtifactStore:
 
     def stage_path(self, job_id: str, attempt_id: str, relative_path: str) -> Path:
         final = self.resolve_final(relative_path)
-        job_key = self._safe_id(job_id)
-        attempt_key = self._safe_id(attempt_id)
+        job_key = self._directory_key(job_id)
+        attempt_key = self._directory_key(attempt_id)
         staging_root = self._staging_root()
         stage_dir = staging_root / job_key / attempt_key
         self._assert_contained(stage_dir.resolve(strict=False), staging_root)
         stage_dir.mkdir(parents=True, exist_ok=True)
         stage_dir = stage_dir.resolve()
         self._assert_contained(stage_dir, staging_root)
-        stage = stage_dir / f"{final.stem}.partial{final.suffix}"
+        artifact_key = hashlib.sha256(relative_path.encode("utf-8")).hexdigest()[:24]
+        stage = stage_dir / f"{artifact_key}.partial{final.suffix}"
         self._assert_contained(stage, staging_root)
         if stage.exists() or stage.is_symlink():
             self._assert_contained(stage.resolve(strict=False), self.staging_root.resolve())
@@ -70,14 +71,14 @@ class FilesystemArtifactStore:
         return final
 
     def has_promotion_record(self, job_id: str, attempt_id: str, final: Path) -> bool:
-        record = self._promotion_record_path(job_id, attempt_id)
+        record = self._promotion_record_path(job_id, attempt_id, final)
         try:
             payload = json.loads(record.read_text(encoding="utf-8"))
             if not isinstance(payload, dict):
                 return False
             if payload != {
-                "job_key": self._safe_id(job_id),
-                "attempt_key": self._safe_id(attempt_id),
+                "job_key": self._directory_key(job_id),
+                "attempt_key": self._directory_key(attempt_id),
                 "final_relative_path": str(final.resolve().relative_to(self.output_root)),
                 "staged_sha256": payload.get("staged_sha256"),
             }:
@@ -112,8 +113,8 @@ class FilesystemArtifactStore:
         return final
 
     def cleanup_owned(self, job_id: str, attempt_id: str) -> None:
-        job_key = self._safe_id(job_id)
-        attempt_key = self._safe_id(attempt_id)
+        job_key = self._directory_key(job_id)
+        attempt_key = self._directory_key(attempt_id)
         staging_root = self._staging_root()
         attempt_dir = staging_root / job_key / attempt_key
         self._assert_contained(attempt_dir.resolve(strict=False), staging_root)
@@ -152,6 +153,33 @@ class FilesystemArtifactStore:
 
         return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
+    @staticmethod
+    def _directory_key(value: str) -> str:
+        """A 96-bit collision-resistant key keeps FFmpeg-owned paths bounded."""
+        return hashlib.sha256(value.encode("utf-8")).hexdigest()[:24]
+
+    def preflight_paths(
+        self, relative_path: str, *, player_text: bool = False
+    ) -> dict[str, Path]:
+        """Return worst-case FFmpeg-visible paths without creating directories."""
+        final = self.resolve_final(relative_path)
+        stage_dir = (
+            self._staging_root()
+            / ("j" * 24)
+            / ("a" * 24)
+        )
+        staged = stage_dir / (("f" * 24) + ".partial" + final.suffix)
+        paths = {
+            "final_output": final,
+            "staged_output": staged,
+            "normalized_audio": stage_dir / (("p" * 24) + ".partial.pcm"),
+            "effect_commands": stage_dir / (("e" * 24) + ".partial.sendcmd"),
+            "staged_font": stage_dir / (("t" * 24) + ".partial.ttf"),
+        }
+        if player_text:
+            paths["player_text"] = stage_dir / "player-text" / "announcement-999.txt"
+        return paths
+
     def _staging_root(self) -> Path:
         resolved = self.staging_root.resolve(strict=False)
         self._assert_contained(resolved, self.output_root)
@@ -187,8 +215,14 @@ class FilesystemArtifactStore:
                 except FileNotFoundError:
                     pass
 
-    def _promotion_record_path(self, job_id: str, attempt_id: str) -> Path:
-        return self.promotion_root / self._safe_id(job_id) / f"{self._safe_id(attempt_id)}.json"
+    def _promotion_record_path(
+        self, job_id: str, attempt_id: str, final: Path | None = None
+    ) -> Path:
+        directory = self.promotion_root / self._directory_key(job_id) / self._directory_key(attempt_id)
+        identity = "legacy" if final is None else hashlib.sha256(
+            str(final.resolve()).encode("utf-8")
+        ).hexdigest()[:32]
+        return directory / f"{identity}.json"
 
     def _write_promotion_record(self, staged: Path, final: Path) -> None:
         job_key = staged.parent.parent.name
@@ -199,7 +233,8 @@ class FilesystemArtifactStore:
         with staged.open("rb") as stream:
             for chunk in iter(lambda: stream.read(1024 * 1024), b""):
                 digest.update(chunk)
-        record = self.promotion_root / job_key / f"{attempt_key}.json"
+        final_key = hashlib.sha256(str(final.resolve()).encode("utf-8")).hexdigest()[:32]
+        record = self.promotion_root / job_key / attempt_key / f"{final_key}.json"
         record.parent.mkdir(parents=True, exist_ok=True)
         payload = canonical_json_bytes({
             "job_key": job_key,

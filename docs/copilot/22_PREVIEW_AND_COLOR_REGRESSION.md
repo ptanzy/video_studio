@@ -15,3 +15,7 @@
 ## Acceptance
 - Picker change updates approximate preview promptly; authoritative preview eventually matches the persisted backend treatment and final render within documented tolerance.
 - A failed preview never overwrites approved settings; the UI can still display last confirmed preview with a clear stale indicator.
+
+## WU3A boundary
+
+WU3A does not make this color-treatment pipeline a prerequisite for basic album and individual-track export. Under approved Doc 38 Decisions 3 and 8, WU3A's baseline visual operation is deterministic orientation/contain/pad of the selected static background, with no generated text or creative transform. Tests for that profile compare decoded output geometry and source-image presentation; this document's color-regression requirements apply only when a later approved render profile actually selects those transforms.

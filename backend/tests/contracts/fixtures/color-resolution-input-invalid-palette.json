@@ -1,0 +1,13 @@
+{
+  "contract_version": "color-resolution-input-v1",
+  "treatment": {
+    "mode": "auto",
+    "intensity": 0.3
+  },
+  "context": {
+    "album_palette": [
+      { "hex": "#12GG56" },
+      { "hex": "#ABCDEF" }
+    ]
+  }
+}

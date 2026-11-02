@@ -1,0 +1,11 @@
+{
+  "format": "wrld-video-album/4.0",
+  "album": {"id": "album-01", "title": "Example Album", "artist": "Example Artist", "parent_channel": "WRLD-FI", "genre_channel": "World Music"},
+  "visual": {"background": "art/background.png", "cover": "art/cover.png", "thumbnail": "art/thumbnail.png"},
+  "tracks": [{"id": "track-01", "number": 1, "title": "First Track", "audio": "audio/01.wav", "music": {"intended": {"bpm": 92, "key": "D minor"}, "analyzed": {"bpm": {"value": 91.8, "confidence": 0.92, "reliable": true}, "key": null}}}],
+  "render": {"profile_id": "youtube-1080p30-player-v1", "effects": {
+    "pan_zoom": {"enabled": true, "max_zoom": 1.04, "path": "diagonal_down_right", "cycle_seconds": 180.0, "return_to_origin": true, "return_duration_seconds": 5.0, "easing": "smoothstep"},
+    "audio_bars": {"enabled": true, "variation_mode": "organic_rms", "bar_count": 32, "color": "#FFFFFF", "opacity": 0.55, "placement": "bottom_center", "zone_width_px": 900, "zone_height_px": 110, "gap_px": 8, "horizontal_offset_px": 0, "bottom_margin_px": 242, "rms_window_samples": 1920, "attack_ms": 60.0, "release_ms": 240.0, "glow": {"enabled": true, "intensity": 0.25}},
+    "player": {"contract_version": "player-overlay/1.0", "font": {"path": "fonts/Segoe UI.ttf", "metadata_size_px": 22, "timer_size_px": 20, "announcement_size_px": 36}, "footer": {"enabled": true, "height_px": 110, "background_color": "#101827", "opacity": 0.65}, "progress": {"enabled": true, "mode": "album", "thickness_px": 6, "fill_opacity": 0.8, "rail_opacity": 0.35}, "metadata": {"enabled": true, "bpm_key_policy": "prefer_reliable_analyzed_then_intended", "transition_seconds": 6.0}, "announcement": {"enabled": false, "fade_in_seconds": 0.5, "hold_seconds": 2.0, "fade_out_seconds": 0.5}, "theme": {"mode": "hybrid", "preset": "subtle", "overrides": {"footer_background": "#101827", "primary_text": null, "secondary_text": null, "progress_fill": null, "progress_rail": null, "visualizer": null}}}
+  }}
+}

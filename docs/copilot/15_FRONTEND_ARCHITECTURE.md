@@ -21,7 +21,7 @@ backend/src/wrld_video_studio/{domain,application,infrastructure,interfaces/http
 backend/tests/
 contracts/schemas/
 docs/copilot/
-ui-reference/
+docs/ui/
 ```
 
 ## API contract proposal (validate before implementation)
@@ -40,6 +40,17 @@ All endpoint names and payloads are proposals to finalize in WU0; do not impleme
 ## Dependency and lifecycle rules
 WaveSurfer instance is created once per mounted waveform component, disposed on unmount/track change; Regions plugin events update React state. Avoid recreating WaveSurfer on each drag frame. Debounce persistence, explicit Save action, and protect against stale responses. Use stable IDs, not list indexes, in persistent payloads. Handle loading, empty, error, cancellation and conflict states. Keep real audio playback within selected bounds; playback must stop at `end_seconds` and restart at `start_seconds`.
 
+## WU3A dependency note
+
+WU3A precedes frontend implementation and provides headless album/track validation, timeline/chapters, static MP4 export, the album-project boundary with artifacts under project-local `output/`, and durable `wrld-render-progress/1.0` attempt records. WU4 consumes validation/timeline plus the existing WU3 still-preview API for Import/Review and owns the future project initialization/selection UX beneath configurable library roots, including room for selectable locations and multiple channels; it does not add render-job HTTP endpoints or a second progress model. WU6 finalizes the proposed render-job routes/payloads and connects the Render page to the same WU3A job/progress/application services. The browser must identify a server-approved project and must never submit an arbitrary local server path. Endpoint examples above remain proposals until their work-unit contract review.
+
+## WU3B dependency note
+
+After Doc 39's exact contract approval, WU3B provides the headless v2 motion export and an application-level, bounded, private temporary MP4 preview use case. The illustrative `POST /api/v1/previews/motion` path above remains unapproved: WU4 must separately define its safe request/streaming adapter over the WU3B use case. WU4 exposes only approved effect fields and resolves complete immutable requests; WU6 submits those same requests through the eventual render-job API and consumes the existing job-progress model. Rendered track progress is video content, not browser job progress. WU7, not WU4–WU6, owns advanced layered/title-aware composition UI.
+
 
 ## v1.4 frontend modules
 Add `ColorTreatmentEditor` to Review and `MetadataReviewPage`/`VideoMetadataEditor`/`ChapterPreview`/`MetadataValidationPanel` to frontend routes. Typed API clients call versioned FastAPI endpoints; backend owns schema validation, override revisions, and authoritative previews. New controls and metadata must have Vitest/RTL and Playwright coverage (doc 20).
+
+## v2.5 frontend integration direction
+Docs 41, 43, and 44 map new workflows to the existing four routes and React architecture. Compose modal/wizard and inherited-setting primitives without a second renderer. **Existing explicit Save and conflict handling remain normative until a separately approved autosave contract is adopted.** Imported-video and clip-playlist components belong to WU8; batch rendering belongs to WU6, not WU4.

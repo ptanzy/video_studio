@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/creation-state-v4.schema.json",
+  "title": "WRLD creation state v4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "project_id", "revision", "save_id", "preferred_short_duration_seconds", "visual_templates", "visual_template_families", "albums", "singles", "shorts", "state_digest"],
+  "properties": {
+    "contract_version": {"const": "wrld-creation-state/4.0"},
+    "project_id": {"$ref": "#/$defs/id"},
+    "revision": {"type": "integer", "minimum": 1},
+    "save_id": {"$ref": "#/$defs/id"},
+    "preferred_short_duration_seconds": {"type": "integer", "minimum": 20, "maximum": 120},
+    "visual_templates": {"type": "array", "items": {"$ref": "#/$defs/visualTemplate"}},
+    "visual_template_families": {"type": "array", "items": {"$ref": "#/$defs/visualTemplateFamily"}},
+    "albums": {"type": "array", "items": {"$ref": "#/$defs/album"}},
+    "singles": {"type": "array", "items": {"$ref": "#/$defs/single"}},
+    "shorts": {"type": "array", "items": {"$ref": "#/$defs/short"}},
+    "state_digest": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "status": {"enum": ["active", "archived"]},
+    "settings": {"type": "object"},
+    "sourceVisualTemplateRef": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+    "backgroundImage": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["asset_id", "expected_sha256"],
+          "properties": {
+            "asset_id": {"$ref": "#/$defs/id"},
+            "expected_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        }
+      ]
+    },
+    "canvas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aspect_ratio"],
+      "properties": {"aspect_ratio": {"enum": ["16:9", "9:16"]}}
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fit_mode", "focal_x", "focal_y"],
+      "properties": {
+        "fit_mode": {"enum": ["contain", "cover"]},
+        "focal_x": {"type": "number", "minimum": 0, "maximum": 1},
+        "focal_y": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "max_zoom"],
+      "properties": {
+        "mode": {"enum": ["static", "bounded"]},
+        "max_zoom": {"type": "number", "minimum": 1, "maximum": 1.05}
+      }
+    },
+    "visualizer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "bar_count", "opacity"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "bar_count": {"type": "integer", "minimum": 8, "maximum": 64},
+        "opacity": {"type": "number", "minimum": 0.1, "maximum": 1}
+      }
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {"enabled": {"type": "boolean"}}
+    },
+    "colorTreatment": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["mode"], "properties": {"mode": {"const": "none"}}},
+        {"type": "object", "additionalProperties": false, "required": ["mode", "hex", "intensity"], "properties": {
+          "mode": {"const": "custom"},
+          "hex": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+          "intensity": {"type": "number", "minimum": 0, "maximum": 0.6}
+        }}
+      ]
+    },
+    "visualConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canvas", "background_image", "geometry", "camera", "visualizer", "progress", "color_treatment"],
+      "properties": {
+        "canvas": {"$ref": "#/$defs/canvas"},
+        "background_image": {"$ref": "#/$defs/backgroundImage"},
+        "geometry": {"$ref": "#/$defs/geometry"},
+        "camera": {"$ref": "#/$defs/camera"},
+        "visualizer": {"$ref": "#/$defs/visualizer"},
+        "progress": {"$ref": "#/$defs/progress"},
+        "color_treatment": {"$ref": "#/$defs/colorTreatment"}
+      }
+    },
+    "visualTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visual_template_id", "label", "canvas", "background_image", "geometry", "camera", "visualizer", "progress", "color_treatment"],
+      "properties": {
+        "visual_template_id": {"$ref": "#/$defs/id"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 128},
+        "canvas": {"$ref": "#/$defs/canvas"},
+        "background_image": {"$ref": "#/$defs/backgroundImage"},
+        "geometry": {"$ref": "#/$defs/geometry"},
+        "camera": {"$ref": "#/$defs/camera"},
+        "visualizer": {"$ref": "#/$defs/visualizer"},
+        "progress": {"$ref": "#/$defs/progress"},
+        "color_treatment": {"$ref": "#/$defs/colorTreatment"}
+      }
+    },
+    "visualTemplateFamily": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visual_template_family_id", "name", "members"],
+      "properties": {
+        "visual_template_family_id": {"$ref": "#/$defs/id"},
+        "name": {"type": "string", "minLength": 1, "maxLength": 128},
+        "members": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["album_visual_template_id", "single_visual_template_id", "short_visual_template_id"],
+          "properties": {
+            "album_visual_template_id": {"$ref": "#/$defs/id"},
+            "single_visual_template_id": {"$ref": "#/$defs/id"},
+            "short_visual_template_id": {"$ref": "#/$defs/id"}
+          }
+        }
+      }
+    },
+    "assignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assignment_id", "asset_id", "expected_sha256", "duplicate_acknowledged"],
+      "properties": {
+        "assignment_id": {"$ref": "#/$defs/id"},
+        "asset_id": {"$ref": "#/$defs/id"},
+        "expected_sha256": {"$ref": "#/$defs/sha256"},
+        "duplicate_acknowledged": {"type": "boolean"}
+      }
+    },
+    "album": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["album_plan_id", "label", "status", "assignments", "visual_configuration", "source_visual_template_id"],
+      "properties": {
+        "album_plan_id": {"$ref": "#/$defs/id"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 128},
+        "status": {"$ref": "#/$defs/status"},
+        "assignments": {"type": "array", "items": {"$ref": "#/$defs/assignment"}},
+        "visual_configuration": {"$ref": "#/$defs/visualConfiguration"},
+        "source_visual_template_id": {"$ref": "#/$defs/sourceVisualTemplateRef"}
+      }
+    },
+    "single": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["single_id", "asset_id", "expected_sha256", "status", "customized", "approved", "settings", "visual_configuration", "source_visual_template_id"],
+      "properties": {
+        "single_id": {"$ref": "#/$defs/id"},
+        "asset_id": {"$ref": "#/$defs/id"},
+        "expected_sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"$ref": "#/$defs/status"},
+        "customized": {"type": "boolean"},
+        "approved": {"type": "boolean"},
+        "settings": {"$ref": "#/$defs/settings"},
+        "visual_configuration": {"$ref": "#/$defs/visualConfiguration"},
+        "source_visual_template_id": {"$ref": "#/$defs/sourceVisualTemplateRef"}
+      }
+    },
+    "short": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["short_id", "asset_id", "expected_sha256", "status", "start_sample", "sample_count", "origin", "review_required", "customized", "approved", "settings", "visual_configuration", "source_visual_template_id"],
+      "properties": {
+        "short_id": {"$ref": "#/$defs/id"},
+        "asset_id": {"$ref": "#/$defs/id"},
+        "expected_sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"$ref": "#/$defs/status"},
+        "start_sample": {"type": "integer", "minimum": 0},
+        "sample_count": {"type": "integer", "minimum": 1},
+        "origin": {"enum": ["primary_fallback", "manual", "manual_required", "analyzer"]},
+        "review_required": {"type": "boolean"},
+        "customized": {"type": "boolean"},
+        "approved": {"type": "boolean"},
+        "settings": {"$ref": "#/$defs/settings"},
+        "visual_configuration": {"$ref": "#/$defs/visualConfiguration"},
+        "source_visual_template_id": {"$ref": "#/$defs/sourceVisualTemplateRef"}
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ from wrld_video_studio.domain.media_errors import MediaInfrastructureError
 from wrld_video_studio.domain.jobs import ProcessExecution
 from wrld_video_studio.infrastructure.ffprobe_adapter import FFprobeAdapter
 from wrld_video_studio.infrastructure.media_tools import MediaToolchain
+from wrld_video_studio.infrastructure import process_runner as process_runner_module
 from wrld_video_studio.infrastructure.process_runner import SubprocessRunner
 from wrld_video_studio.infrastructure.progress import FFmpegProgressParser
 
@@ -150,6 +151,166 @@ def test_process_runner_uses_bounded_output_and_returns_nonzero_code():
     assert result.returncode == 7
     assert len(result.stdout.encode("utf-8")) <= 1024
     assert len(result.stderr_tail.encode("utf-8")) <= 64
+
+
+def test_process_runner_uses_validated_working_directory(tmp_path):
+    work = tmp_path / "attempt-owned"
+    work.mkdir()
+    result = SubprocessRunner().run(
+        [getattr(sys, "_base_executable", sys.executable), "-c", "from pathlib import Path; print(Path.cwd().name)"],
+        timeout_seconds=10,
+        working_directory=work,
+    )
+    assert result.returncode == 0
+    assert result.stdout.strip() == "attempt-owned"
+
+
+def test_process_runner_rejects_missing_working_directory(tmp_path):
+    with pytest.raises(MediaInfrastructureError) as failure:
+        SubprocessRunner().run(
+            [getattr(sys, "_base_executable", sys.executable), "-c", "print('never')"],
+            timeout_seconds=10,
+            working_directory=tmp_path / "missing",
+        )
+    assert failure.value.code == "INVALID_COMMAND"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows suspended-start ownership semantics")
+@pytest.mark.parametrize("delay_seconds", [0.0, 0.01, 0.1])
+def test_process_runner_owns_immediate_and_short_lived_windows_processes(delay_seconds):
+    result = SubprocessRunner().run(
+        [
+            getattr(sys, "_base_executable", sys.executable),
+            "-c",
+            f"import time; time.sleep({delay_seconds!r})",
+        ],
+        timeout_seconds=5,
+    )
+
+    assert result.returncode == 0
+    assert not result.cancelled
+    assert not result.timed_out
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows suspended-start ownership semantics")
+def test_process_runner_child_cannot_exit_before_job_assignment(monkeypatch):
+    original = SubprocessRunner._create_windows_job
+    observed: list[bool] = []
+
+    def delayed_assignment(process):
+        observed.append(process.poll() is None)
+        time.sleep(0.2)
+        observed.append(process.poll() is None)
+        return original(process)
+
+    monkeypatch.setattr(
+        SubprocessRunner, "_create_windows_job", staticmethod(delayed_assignment)
+    )
+
+    result = SubprocessRunner().run(
+        [getattr(sys, "_base_executable", sys.executable), "-c", "pass"],
+        timeout_seconds=5,
+    )
+
+    assert observed == [True, True]
+    assert result.returncode == 0
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows Job Object diagnostics")
+@pytest.mark.parametrize(
+    ("operation", "stage"),
+    [
+        ("CreateJobObject", "create_job"),
+        ("AssignProcessToJobObject", "assign_process_to_job"),
+    ],
+)
+def test_process_runner_reports_sanitized_windows_ownership_stage(
+    monkeypatch, operation, stage
+):
+    import pywintypes
+    import win32job
+
+    def denied(*_args, **_kwargs):
+        raise pywintypes.error(5, operation, "Access is denied.")
+
+    monkeypatch.setattr(win32job, operation, denied)
+
+    with pytest.raises(MediaInfrastructureError) as caught:
+        SubprocessRunner(grace_seconds=0.1).run(
+            [getattr(sys, "_base_executable", sys.executable), "-c", "pass"],
+            timeout_seconds=5,
+        )
+
+    assert caught.value.code == "PROCESS_OWNERSHIP_FAILED"
+    assert caught.value.details["stage"] == stage
+    assert caught.value.details["windows_error"] == 5
+    assert caught.value.details["process_exited"] is False
+    assert caught.value.details["already_in_job"] in {True, False}
+    assert isinstance(caught.value.__cause__, process_runner_module._WindowsOwnershipFailure)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows Job Object cleanup")
+def test_process_runner_closes_assigned_job_when_resume_fails(monkeypatch):
+    import pywintypes
+    import win32api
+
+    closed: list[object] = []
+    original_close = SubprocessRunner._close_windows_job
+
+    def fail_open_thread(*_args, **_kwargs):
+        raise pywintypes.error(5, "OpenThread", "Access is denied.")
+
+    def record_close(job):
+        closed.append(job)
+        original_close(job)
+
+    monkeypatch.setattr(win32api, "OpenThread", fail_open_thread)
+    monkeypatch.setattr(
+        SubprocessRunner, "_close_windows_job", staticmethod(record_close)
+    )
+
+    with pytest.raises(MediaInfrastructureError) as caught:
+        SubprocessRunner(grace_seconds=0.1).run(
+            [getattr(sys, "_base_executable", sys.executable), "-c", "pass"],
+            timeout_seconds=5,
+        )
+
+    assert caught.value.code == "PROCESS_OWNERSHIP_FAILED"
+    assert caught.value.details["stage"] == "open_primary_thread"
+    assert caught.value.details["windows_error"] == 5
+    assert len(closed) == 1
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows process-handle accounting")
+def test_process_runner_repeated_short_processes_do_not_leak_handles():
+    import ctypes
+    import gc
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel32.GetProcessHandleCount.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+    kernel32.GetProcessHandleCount.restype = wintypes.BOOL
+
+    def handle_count() -> int:
+        value = wintypes.DWORD()
+        assert kernel32.GetProcessHandleCount(
+            kernel32.GetCurrentProcess(), ctypes.byref(value)
+        )
+        return int(value.value)
+
+    gc.collect()
+    before = handle_count()
+    runner = SubprocessRunner()
+    for _ in range(25):
+        result = runner.run(
+            [getattr(sys, "_base_executable", sys.executable), "-c", "pass"],
+            timeout_seconds=5,
+        )
+        assert result.returncode == 0
+    gc.collect()
+
+    assert handle_count() <= before + 2
 
 
 def test_process_runner_times_out_and_reaps_owned_child():
@@ -315,7 +476,9 @@ def test_process_runner_cancellation_reaps_owned_descendant():
     import win32event
 
     cancellation = threading.Event()
-    timer = threading.Timer(0.5, cancellation.set)
+    # Leave enough startup time for the owned child to publish its descendant PID
+    # even when the complete real-media suite has put the Windows host under load.
+    timer = threading.Timer(2.0, cancellation.set)
     child_code = "import subprocess,sys,time; child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); print(child.pid,flush=True); time.sleep(30)"
     timer.start()
     try:
@@ -352,5 +515,12 @@ def test_progress_parser_keeps_unknown_null_and_monotonic_known_values():
     regressed = parser.feed_line("progress=continue")
     assert regressed is not None and regressed.progress_percent == 50
     parser.feed_line("out_time_us=3000000")
+    ended = parser.feed_line("progress=end")
+    assert ended is not None and ended.progress_percent == 100 and ended.ended
+
+
+def test_progress_parser_marks_end_complete_when_timestamp_rounds_short():
+    parser = FFmpegProgressParser(60.0)
+    parser.feed_line("out_time_us=59996000")
     ended = parser.feed_line("progress=end")
     assert ended is not None and ended.progress_percent == 100 and ended.ended

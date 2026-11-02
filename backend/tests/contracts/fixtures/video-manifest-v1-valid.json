@@ -1,0 +1,14 @@
+{
+  "format": "wrld-video-album/1.0",
+  "album": {
+    "id": "album-01",
+    "title": "Album One",
+    "artist": "WRLD Music",
+    "channel": "WRLD-FI"
+  },
+  "visual": {"background": "art/background.png"},
+  "tracks": [
+    {"id": "track-01", "number": 1, "title": "First", "audio": "audio/first.wav"}
+  ],
+  "render": {"profile_id": "youtube-1080p30-v1"}
+}

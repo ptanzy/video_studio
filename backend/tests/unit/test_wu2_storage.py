@@ -147,6 +147,25 @@ def test_concurrent_claims_return_at_most_one_active_job(tmp_path, schema_dir):
     assert states.count(JobState.RUNNING) == 1
 
 
+def test_targeted_claim_selects_exact_attempt_and_preserves_older_queue(tmp_path, schema_dir):
+    repository = make_repo(tmp_path, schema_dir)
+    older, older_status = make_pair("job-older", "attempt-older", "2026-10-20T12:00:00Z")
+    target, target_status = make_pair("job-target", "attempt-target", "2026-10-20T12:01:00Z")
+    repository.create(older, older_status)
+    repository.create(target, target_status)
+
+    claimed = repository.claim_attempt(target.job_id, target.attempt_id)
+
+    assert claimed is not None
+    assert (claimed[0].job_id, claimed[0].attempt_id) == (
+        target.job_id,
+        target.attempt_id,
+    )
+    assert claimed[1].status is JobState.RUNNING
+    assert repository.get_attempt(older.job_id, older.attempt_id)[1].status is JobState.QUEUED
+    assert repository.claim_attempt(older.job_id, older.attempt_id) is None
+
+
 def test_worker_lock_excludes_a_second_process(tmp_path, schema_dir):
     repository = make_repo(tmp_path, schema_dir)
     context = multiprocessing.get_context("spawn")

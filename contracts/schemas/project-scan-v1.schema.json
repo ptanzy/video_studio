@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/project-scan-v1.schema.json",
+  "title": "WRLD project scan status v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["contract_version", "scan_id", "project_id", "status", "started_at", "completed_at", "visited_entries", "discovered_assets", "progress_percent", "policy", "retry_of_scan_id", "error"],
+  "properties": {
+    "contract_version": {"const": "wrld-project-scan/1.0"}, "scan_id": {"$ref": "#/$defs/id"}, "project_id": {"$ref": "#/$defs/id"},
+    "status": {"enum": ["queued", "running", "completed", "failed", "cancel_requested", "cancelled"]},
+    "started_at": {"type": "string", "format": "date-time"}, "completed_at": {"type": ["string", "null"], "format": "date-time"},
+    "visited_entries": {"type": "integer", "minimum": 0}, "discovered_assets": {"type": "integer", "minimum": 0},
+    "progress_percent": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+    "retry_of_scan_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+    "policy": {"type": "object"},
+    "error": {"oneOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "required": ["code", "message", "details"], "properties": {"code": {"$ref": "#/$defs/id"}, "message": {"type": "string"}, "details": {"type": "object"}}}]}
+  },
+  "$defs": {"id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"}}
+}

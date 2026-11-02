@@ -26,6 +26,8 @@ class FFmpegProgressParser:
             return None
         ended = value == "end"
         percent = self._estimate(self._values)
+        if ended and self.duration_seconds is not None:
+            percent = 100.0
         if percent is not None:
             if self._last_percent is not None:
                 percent = max(self._last_percent, percent)

@@ -1,0 +1,27 @@
+{
+  "contract_version": "video-export-result/1.0",
+  "job_id": "job-1",
+  "attempt_id": "attempt-1",
+  "state": "completed",
+  "target": {"kind": "album"},
+  "request_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "artifacts": [{
+    "kind": "album_video",
+    "path": "output/album/Album One.mp4",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "byte_size": 123,
+    "verification": "verified",
+    "media": {"width": 1920, "height": 1080}
+  }],
+  "timeline": [{
+    "track_id": "track-01",
+    "number": 1,
+    "title": "First",
+    "start_sample": 0,
+    "sample_count": 48000,
+    "display_seconds": 0
+  }],
+  "warnings": [],
+  "started_at": "2026-10-25T00:00:00Z",
+  "finished_at": "2026-10-25T00:01:00Z"
+}

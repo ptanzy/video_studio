@@ -1,0 +1,17 @@
+{
+  "contract_version": "wrld-render-progress/1.0",
+  "job_id": "job-1",
+  "attempt_id": "attempt-1",
+  "phase": "encoding",
+  "phase_progress_percent": 42.5,
+  "current_track": null,
+  "total_tracks": 12,
+  "processed_duration_seconds": 102.5,
+  "total_duration_seconds": 241.2,
+  "elapsed_seconds": 110.0,
+  "eta_seconds": null,
+  "last_progress_at": "2026-10-25T12:00:00Z",
+  "last_heartbeat_at": "2026-10-25T12:00:00Z",
+  "failure_phase": null,
+  "diagnostic_reference": null
+}

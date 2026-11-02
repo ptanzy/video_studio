@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.example/contracts/still-render-v1.schema.json",
+  "title": "WRLD authoritative still render v1",
+  "description": "Backend-only provisional Phase 2 v1 authoritative still rendering contract. Output sizing is aspect-preserving, no-upscale, and limited to 1024 pixels on the longest side.",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/result" }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "resolution": {
+      "$ref": "https://wrld.example/contracts/color-resolution-v1.schema.json#/$defs/output"
+    },
+    "request": {
+      "type": "object",
+      "required": ["contract_version", "source_path", "output_relative_path", "resolution", "renderer_version", "transform_version"],
+      "properties": {
+        "contract_version": { "const": "still-render-request-v1" },
+        "source_path": { "type": "string", "minLength": 1 },
+        "output_relative_path": {
+          "type": "string",
+          "pattern": "^(?![/\\\\])(?![A-Za-z]:)(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$))(?=.+[.]png$).+$"
+        },
+        "resolution": { "$ref": "#/$defs/resolution" },
+        "renderer_version": { "const": "ffmpeg-still-v1" },
+        "transform_version": { "const": "linear-luma-chroma-v1" }
+      },
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "contract_version", "artifact_path", "source_sha256", "treatment", "width", "height",
+        "output_format", "renderer_version", "transform_version", "ffmpeg_version", "input_pixel_format",
+        "output_pixel_format", "orientation", "sanitized_command"
+      ],
+      "properties": {
+        "contract_version": { "const": "still-render-result-v1" },
+        "artifact_path": { "type": "string", "minLength": 1 },
+        "source_sha256": { "$ref": "#/$defs/sha256" },
+        "treatment": { "$ref": "#/$defs/resolution" },
+        "width": { "type": "integer", "minimum": 1, "maximum": 1024 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 1024 },
+        "output_format": { "const": "png" },
+        "renderer_version": { "const": "ffmpeg-still-v1" },
+        "transform_version": { "const": "linear-luma-chroma-v1" },
+        "ffmpeg_version": { "type": "string", "minLength": 1 },
+        "input_pixel_format": { "type": "string", "minLength": 1 },
+        "output_pixel_format": { "const": "rgba" },
+        "orientation": {
+          "type": "string",
+          "pattern": "^EXIF orientation [1-8] normalized explicitly$"
+        },
+        "sanitized_command": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

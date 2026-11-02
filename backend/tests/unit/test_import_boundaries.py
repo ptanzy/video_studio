@@ -19,3 +19,43 @@ def test_domain_and_application_sources_do_not_import_infrastructure_or_framewor
                 for name in imported
                 for forbidden in forbidden_roots
             ), source_path
+
+
+def test_artwork_source_port_and_use_case_do_not_depend_on_filesystem_adapter():
+    source_root = Path(__file__).resolve().parents[2] / "src" / "wrld_video_studio"
+    for relative_path in (
+        Path("application/ports/artwork_sources.py"),
+        Path("application/artwork_sources.py"),
+    ):
+        source = (source_root / relative_path).read_text(encoding="utf-8")
+        assert "wrld_video_studio.infrastructure" not in source
+
+
+def test_preview_cache_port_does_not_depend_on_filesystem_adapter():
+    source_root = Path(__file__).resolve().parents[2] / "src" / "wrld_video_studio"
+    source = (source_root / "application/ports/preview_cache.py").read_text(encoding="utf-8")
+    assert "wrld_video_studio.infrastructure" not in source
+    assert "portalocker" not in source
+
+
+def test_render_coordination_port_and_use_case_do_not_depend_on_adapters():
+    source_root = Path(__file__).resolve().parents[2] / "src" / "wrld_video_studio"
+    for relative_path in (
+        Path("application/ports/render_coordination.py"),
+        Path("application/render_coordination.py"),
+    ):
+        source = (source_root / relative_path).read_text(encoding="utf-8")
+        assert "wrld_video_studio.infrastructure" not in source
+        assert "subprocess" not in source
+
+
+def test_preview_service_and_render_ports_do_not_depend_on_adapters():
+    source_root = Path(__file__).resolve().parents[2] / "src" / "wrld_video_studio"
+    for relative_path in (
+        Path("application/ports/still_images.py"),
+        Path("application/ports/render_coordination.py"),
+        Path("application/preview_service.py"),
+    ):
+        source = (source_root / relative_path).read_text(encoding="utf-8")
+        assert "wrld_video_studio.infrastructure" not in source
+        assert "subprocess" not in source

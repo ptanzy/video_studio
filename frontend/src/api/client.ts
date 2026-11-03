@@ -1,15 +1,27 @@
-import type { AlbumRead, CatalogResponse, CreationState, CreationStateDocument, InventoryScan, ProjectDirectory, ProjectInventory, ProjectPreferences, ProjectRoot, ProjectSummary, StudioAlbum, ValidationReport } from './types'
+import type { AlbumRead, CatalogResponse, CreationState, CreationStateDocument, InventoryScan, MetadataExportPreview, MetadataExportResult, MetadataReconcilePreview, MetadataValidation, ProjectDirectory, ProjectInventory, ProjectPreferences, ProjectRoot, ProjectSummary, StudioAlbum, ValidationReport, YouTubeMetadataState } from './types'
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly code = 'REQUEST_FAILED', readonly details: Record<string, unknown> = {}) { super(message) }
 }
 
 const json = async <T>(response: Response): Promise<T> => {
+  const contentType = response.headers?.get?.('content-type')?.split(';', 1)[0]?.trim().toLowerCase() ?? ''
+  const responseUrl = response.url || 'the requested API endpoint'
+  const invalidResponse = (cause?: unknown) => new ApiError(
+    contentType === 'text/html'
+      ? `The API request returned HTML instead of JSON from ${responseUrl}. Restart the Vite development server so its /api proxy targets the running backend at http://127.0.0.1:8000.`
+      : `The API response from ${responseUrl} was not valid JSON${contentType ? ` (Content-Type: ${contentType})` : ''}. Verify that the local backend and frontend proxy are running with the current configuration.`,
+    response.status,
+    'API_RESPONSE_INVALID',
+    { response_url: response.url || null, content_type: contentType || null, http_status: response.status, cause: cause instanceof Error ? cause.message : null },
+  )
+  if (contentType && contentType !== 'application/json' && !contentType.endsWith('+json')) throw invalidResponse()
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { error?: { code?: string; message?: string; details?: Record<string, unknown> } } | null
+    const body = (await response.json().catch((cause: unknown) => { throw invalidResponse(cause) })) as { error?: { code?: string; message?: string; details?: Record<string, unknown> }; detail?: string } | null
     throw new ApiError(body?.error?.message ?? `Request failed (${response.status})`, response.status, body?.error?.code, body?.error?.details)
   }
-  return response.json() as Promise<T>
+  try { return await response.json() as T }
+  catch (cause) { throw invalidResponse(cause) }
 }
 
 export const loadBackendAlbums = async (signal?: AbortSignal): Promise<StudioAlbum[]> => {
@@ -82,3 +94,12 @@ const editableCreationState = (state: CreationStateDocument): CreationState => {
 }
 export const loadCreationState = async (projectId: string, signal?: AbortSignal) => editableCreationState(await json<CreationStateDocument>(await fetch(`/api/v1/projects/${encodeURIComponent(projectId)}/creation-state`, { signal })))
 export const saveCreationState = async (projectId: string, state: CreationState) => saveDocument(`/api/v1/projects/${encodeURIComponent(projectId)}/creation-state`, state, () => loadCreationState(projectId))
+const metadataUrl = (projectId: string) => `/api/v1/projects/${encodeURIComponent(projectId)}/youtube-metadata`
+export const loadYouTubeMetadata = async (projectId: string, signal?: AbortSignal) => json<YouTubeMetadataState>(await fetch(metadataUrl(projectId), { signal }))
+export const initializeYouTubeMetadata = async (projectId: string, creation: CreationState) => json<YouTubeMetadataState>(await fetch(`${metadataUrl(projectId)}/initialize`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ save_id: crypto.randomUUID(), creation_revision: creation.revision, creation_state_digest: creation.state_digest }) }))
+export const saveYouTubeMetadata = async (projectId: string, state: YouTubeMetadataState) => saveDocument(metadataUrl(projectId), state, () => loadYouTubeMetadata(projectId))
+export const validateYouTubeMetadata = async (projectId: string, state: YouTubeMetadataState, mode: MetadataValidation['mode'], targetKeys: string[] | null = null) => json<MetadataValidation>(await fetch(`${metadataUrl(projectId)}/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state, mode, target_keys: targetKeys }) }))
+export const previewYouTubeMetadataReconcile = async (projectId: string, state: YouTubeMetadataState) => json<MetadataReconcilePreview>(await fetch(`${metadataUrl(projectId)}/reconcile-preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expected_revision: state.revision, refresh_fields: [], carry_chapter_labels: [] }) }))
+export const reconcileYouTubeMetadata = async (projectId: string, state: YouTubeMetadataState, previewFingerprint: string) => json<YouTubeMetadataState>(await fetch(`${metadataUrl(projectId)}/reconcile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expected_revision: state.revision, save_id: crypto.randomUUID(), preview_fingerprint: previewFingerprint, refresh_fields: [], carry_chapter_labels: [] }) }))
+export const previewYouTubeMetadataExport = async (projectId: string, state: YouTubeMetadataState, targetKeys: string[]) => json<MetadataExportPreview>(await fetch(`${metadataUrl(projectId)}/export-preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expected_revision: state.revision, target_keys: targetKeys }) }))
+export const exportYouTubeMetadata = async (projectId: string, state: YouTubeMetadataState, targetKeys: string[], preview: MetadataExportPreview, replaceExisting: boolean) => json<MetadataExportResult>(await fetch(`${metadataUrl(projectId)}/exports`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expected_revision: state.revision, target_keys: targetKeys, preview_fingerprint: preview.preview_fingerprint, replace_existing: replaceExisting, expected_existing_sha256: replaceExisting ? preview.existing_sha256 : null }) }))

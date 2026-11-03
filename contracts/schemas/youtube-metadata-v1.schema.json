@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/youtube-metadata-v1.schema.json",
+  "$comment": "Approved WU5 portable export contract. Doc 51 is authoritative.",
+  "title": "WRLD portable YouTube metadata v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "project_id",
+    "revision",
+    "content_fingerprint",
+    "albums",
+    "singles",
+    "shorts"
+  ],
+  "properties": {
+    "contract_version": {"const": "wrld-youtube-metadata/1.0"},
+    "project_id": {"$ref": "#/$defs/id"},
+    "revision": {"type": "integer", "minimum": 1},
+    "content_fingerprint": {"$ref": "#/$defs/sha256"},
+    "albums": {"type": "array", "items": {"$ref": "#/$defs/albumEntry"}},
+    "singles": {"type": "array", "items": {"$ref": "#/$defs/singleEntry"}},
+    "shorts": {"type": "array", "items": {"$ref": "#/$defs/shortEntry"}}
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "targetKey": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 135,
+      "pattern": "^(album|single|short):[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nullableId": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+    "nullableText": {
+      "oneOf": [
+        {"type": "string", "minLength": 1, "maxLength": 5000},
+        {"type": "null"}
+      ]
+    },
+    "nullableUri": {
+      "oneOf": [
+        {"type": "string", "minLength": 1, "maxLength": 2048, "format": "uri", "pattern": "^https?://"},
+        {"type": "null"}
+      ]
+    },
+    "credit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "name"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1, "maxLength": 100},
+        "name": {"type": "string", "minLength": 1, "maxLength": 200}
+      }
+    },
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "url"],
+      "properties": {
+        "key": {"$ref": "#/$defs/id"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 200},
+        "url": {"type": "string", "minLength": 1, "maxLength": 2048, "format": "uri", "pattern": "^https?://"}
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "description",
+        "tags",
+        "hashtags",
+        "artist_name",
+        "channel_name",
+        "credits",
+        "links",
+        "visibility",
+        "pinned_comment",
+        "release_album_plan_id",
+        "related_video_url"
+      ],
+      "properties": {
+        "title": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 5000},
+        "tags": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"type": "string", "minLength": 1, "maxLength": 100}
+        },
+        "hashtags": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"type": "string", "minLength": 2, "maxLength": 100, "pattern": "^#[^#\\s]+$"}
+        },
+        "artist_name": {"type": "string", "minLength": 1, "maxLength": 200},
+        "channel_name": {"type": "string", "minLength": 1, "maxLength": 200},
+        "credits": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/credit"}},
+        "links": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/link"}},
+        "visibility": {"enum": ["private", "unlisted", "public"]},
+        "pinned_comment": {"$ref": "#/$defs/nullableText"},
+        "release_album_plan_id": {"$ref": "#/$defs/nullableId"},
+        "related_video_url": {"$ref": "#/$defs/nullableUri"}
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint", "approved_at"],
+      "properties": {
+        "fingerprint": {"$ref": "#/$defs/sha256"},
+        "approved_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "artifactReference": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^output/(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+            },
+            "sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        {"type": "null"}
+      ]
+    },
+    "assignmentReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assignment_id", "asset_id", "expected_sha256"],
+      "properties": {
+        "assignment_id": {"$ref": "#/$defs/id"},
+        "asset_id": {"$ref": "#/$defs/id"},
+        "expected_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "recordingReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_id", "expected_sha256"],
+      "properties": {
+        "asset_id": {"$ref": "#/$defs/id"},
+        "expected_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "chapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["track_id", "start_seconds", "timestamp", "label"],
+      "properties": {
+        "track_id": {"$ref": "#/$defs/id"},
+        "start_seconds": {"type": "integer", "minimum": 0},
+        "timestamp": {"type": "string", "pattern": "^(?:[0-9]+:)?[0-5][0-9]:[0-5][0-9]$"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 200}
+      }
+    },
+    "albumEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_key",
+        "album_plan_id",
+        "assignments",
+        "metadata",
+        "chapter_source_sha256",
+        "chapters",
+        "media",
+        "thumbnail",
+        "approval"
+      ],
+      "properties": {
+        "target_key": {"$ref": "#/$defs/targetKey"},
+        "album_plan_id": {"$ref": "#/$defs/id"},
+        "assignments": {"type": "array", "items": {"$ref": "#/$defs/assignmentReference"}},
+        "metadata": {"$ref": "#/$defs/metadata"},
+        "chapter_source_sha256": {"$ref": "#/$defs/sha256"},
+        "chapters": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/chapter"}},
+        "media": {"$ref": "#/$defs/artifactReference"},
+        "thumbnail": {"$ref": "#/$defs/artifactReference"},
+        "approval": {"$ref": "#/$defs/approval"}
+      }
+    },
+    "singleEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_key", "single_id", "recording", "metadata", "media", "thumbnail", "approval"],
+      "properties": {
+        "target_key": {"$ref": "#/$defs/targetKey"},
+        "single_id": {"$ref": "#/$defs/id"},
+        "recording": {"$ref": "#/$defs/recordingReference"},
+        "metadata": {"$ref": "#/$defs/metadata"},
+        "media": {"$ref": "#/$defs/artifactReference"},
+        "thumbnail": {"$ref": "#/$defs/artifactReference"},
+        "approval": {"$ref": "#/$defs/approval"}
+      }
+    },
+    "shortEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_key", "short_id", "recording", "metadata", "media", "thumbnail", "approval"],
+      "properties": {
+        "target_key": {"$ref": "#/$defs/targetKey"},
+        "short_id": {"$ref": "#/$defs/id"},
+        "recording": {"$ref": "#/$defs/recordingReference"},
+        "metadata": {"$ref": "#/$defs/metadata"},
+        "media": {"$ref": "#/$defs/artifactReference"},
+        "thumbnail": {"$ref": "#/$defs/artifactReference"},
+        "approval": {"$ref": "#/$defs/approval"}
+      }
+    }
+  }
+}

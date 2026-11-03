@@ -63,9 +63,20 @@ class ProjectDocumentService:
         return {**state, "project_id": project_id, "revision": expected_revision + 1, "save_id": save_id}
 
 
+class YouTubeMetadata:
+    def get(self, project_id: str): return {"contract_version": "wrld-youtube-metadata-editor/1.0", "project_id": project_id, "revision": 1, "targets": []}
+    def initialize(self, project_id: str, save_id: str, creation_revision: int, creation_state_digest: str): return {"project_id": project_id, "save_id": save_id, "revision": 1, "creation_revision": creation_revision, "creation_state_digest": creation_state_digest}
+    def put(self, project_id: str, expected_revision: int, save_id: str, state: dict): return {**state, "project_id": project_id, "revision": expected_revision + 1, "save_id": save_id}
+    def validate(self, project_id: str, state: dict, mode: str, target_keys): return {"project_id": project_id, "mode": mode, "target_keys": target_keys, "valid": True}
+    def reconcile_preview(self, project_id: str, expected_revision: int, refresh_fields, carry_chapter_labels): return {"project_id": project_id, "editor_revision": expected_revision, "refresh_fields": refresh_fields, "carry_chapter_labels": carry_chapter_labels, "preview_fingerprint": "a" * 64}
+    def reconcile(self, project_id: str, expected_revision: int, save_id: str, preview_fingerprint: str, refresh_fields, carry_chapter_labels): return {"project_id": project_id, "revision": expected_revision + 1, "save_id": save_id, "preview_fingerprint": preview_fingerprint}
+    def export_preview(self, project_id: str, expected_revision: int, target_keys): return {"project_id": project_id, "editor_revision": expected_revision, "target_keys": target_keys, "preview_fingerprint": "a" * 64}
+    def export(self, project_id: str, expected_revision: int, target_keys, preview_fingerprint: str, replace_existing: bool, expected_existing_sha256): return {"project_id": project_id, "target_keys": target_keys, "preview_fingerprint": preview_fingerprint, "replace_existing": replace_existing, "expected_existing_sha256": expected_existing_sha256}
+
+
 def app() -> FastAPI:
     value = FastAPI()
-    value.state.wu4_runtime = SimpleNamespace(albums=Albums(), assets=Assets(), inventories=Inventories(), scans=Scans(), preferences=ProjectDocumentService("wrld-project-preferences/1.0"), creation=ProjectDocumentService("wrld-creation-state/1.0"))
+    value.state.wu4_runtime = SimpleNamespace(albums=Albums(), assets=Assets(), inventories=Inventories(), scans=Scans(), preferences=ProjectDocumentService("wrld-project-preferences/1.0"), creation=ProjectDocumentService("wrld-creation-state/1.0"), youtube_metadata=YouTubeMetadata())
     value.include_router(router)
     value.add_exception_handler(WU4Error, lambda _request, error: error_response(error))
     return value
@@ -130,6 +141,26 @@ def test_project_preferences_and_creation_state_routes_are_revision_safe_shapes(
         assert creation["preferred_short_duration_seconds"] == 45
         saved_creation = client.put("/api/v1/projects/p/creation-state", json={"expected_revision": 1, "save_id": "creation", "state": creation})
         assert saved_creation.status_code == 200 and saved_creation.json()["revision"] == 2
+
+
+def test_youtube_metadata_routes_are_project_scoped_and_revision_safe_shapes():
+    with TestClient(app()) as client:
+        base = "/api/v1/projects/p/youtube-metadata"
+        assert client.get(base).json()["project_id"] == "p"
+        initialized = client.post(f"{base}/initialize", json={"save_id": "initialize", "creation_revision": 4, "creation_state_digest": "a" * 64})
+        assert initialized.status_code == 201 and initialized.json()["creation_revision"] == 4
+        saved = client.put(base, json={"expected_revision": 1, "save_id": "save", "state": {"targets": []}})
+        assert saved.json()["revision"] == 2
+        checked = client.post(f"{base}/validate", json={"state": {"targets": []}, "mode": "draft", "target_keys": None})
+        assert checked.json()["mode"] == "draft"
+        preview = client.post(f"{base}/reconcile-preview", json={"expected_revision": 1, "refresh_fields": [{"target_key": "single:s", "field": "title"}], "carry_chapter_labels": []})
+        assert preview.json()["refresh_fields"] == [{"target_key": "single:s", "field": "title"}]
+        reconciled = client.post(f"{base}/reconcile", json={"expected_revision": 1, "save_id": "reconcile", "preview_fingerprint": "a" * 64, "refresh_fields": [], "carry_chapter_labels": []})
+        assert reconciled.json()["revision"] == 2
+        export_preview = client.post(f"{base}/export-preview", json={"expected_revision": 2, "target_keys": ["single:s"]})
+        assert export_preview.json()["target_keys"] == ["single:s"]
+        exported = client.post(f"{base}/exports", json={"expected_revision": 2, "target_keys": ["single:s"], "preview_fingerprint": "a" * 64, "replace_existing": False, "expected_existing_sha256": None})
+        assert exported.json()["replace_existing"] is False
 
 
 @pytest.mark.integration_ffmpeg

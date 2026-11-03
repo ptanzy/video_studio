@@ -83,6 +83,7 @@ def build_import_config(args: argparse.Namespace) -> WU4ApplicationConfig:
         inventory_schema=schemas / "project-inventory-v1.schema.json",
         project_preferences_schema=schemas / "project-preferences-v1.schema.json",
         creation_state_schema=schemas / "creation-state-v1.schema.json",
+        youtube_metadata_editor_schema=schemas / "youtube-metadata-editor-v1.schema.json",
         ffmpeg_path=configured["ffmpeg"],
         ffprobe_path=configured["ffprobe"],
     )

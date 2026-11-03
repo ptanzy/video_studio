@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/youtube-metadata-editor-v1.schema.json",
+  "$comment": "Approved WU5 private editor-state contract. Doc 51 is authoritative.",
+  "title": "WRLD YouTube metadata editor state v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "project_id",
+    "revision",
+    "save_id",
+    "generation_version",
+    "creation_basis",
+    "targets",
+    "state_digest"
+  ],
+  "properties": {
+    "contract_version": {"const": "wrld-youtube-metadata-editor/1.0"},
+    "project_id": {"$ref": "#/$defs/id"},
+    "revision": {"type": "integer", "minimum": 1},
+    "save_id": {"$ref": "#/$defs/id"},
+    "generation_version": {"const": "wrld-youtube-metadata-draft/1.0"},
+    "creation_basis": {"$ref": "#/$defs/creationBasis"},
+    "targets": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/editorTarget"}
+    },
+    "state_digest": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "targetKey": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 135,
+      "pattern": "^(album|single|short):[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nullableSha256": {
+      "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+    },
+    "nullableId": {
+      "oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]
+    },
+    "fieldOrigin": {"enum": ["generated", "supplied", "edited"]},
+    "creationBasis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "revision", "state_digest"],
+      "properties": {
+        "contract_version": {"const": "wrld-creation-state/4.0"},
+        "revision": {"type": "integer", "minimum": 1},
+        "state_digest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "targetReference": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "album_plan_id"],
+          "properties": {
+            "kind": {"const": "album"},
+            "album_plan_id": {"$ref": "#/$defs/id"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "single_id"],
+          "properties": {
+            "kind": {"const": "single"},
+            "single_id": {"$ref": "#/$defs/id"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "short_id"],
+          "properties": {
+            "kind": {"const": "short"},
+            "short_id": {"$ref": "#/$defs/id"}
+          }
+        }
+      ]
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "creation_target_fingerprint",
+        "source_metadata_fingerprint",
+        "chapter_source_fingerprint"
+      ],
+      "properties": {
+        "creation_target_fingerprint": {"$ref": "#/$defs/sha256"},
+        "source_metadata_fingerprint": {"$ref": "#/$defs/sha256"},
+        "chapter_source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "titleField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {"type": "string", "maxLength": 100},
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "descriptionField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {"type": "string", "maxLength": 5000},
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "identityField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {"type": "string", "maxLength": 200},
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "optionalTextField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {
+          "oneOf": [
+            {"type": "string", "minLength": 1, "maxLength": 5000},
+            {"type": "null"}
+          ]
+        },
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "optionalIdField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {"$ref": "#/$defs/nullableId"},
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "optionalUriField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {
+          "oneOf": [
+            {"type": "string", "minLength": 1, "maxLength": 2048, "format": "uri", "pattern": "^https?://"},
+            {"type": "null"}
+          ]
+        },
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "stringListField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"type": "string", "minLength": 1, "maxLength": 100}
+        },
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "visibilityField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {"enum": ["private", "unlisted", "public"]},
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "credit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "name"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1, "maxLength": 100},
+        "name": {"type": "string", "minLength": 1, "maxLength": 200}
+      }
+    },
+    "creditsField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"$ref": "#/$defs/credit"}
+        },
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "url"],
+      "properties": {
+        "key": {"$ref": "#/$defs/id"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 200},
+        "url": {"type": "string", "minLength": 1, "maxLength": 2048, "format": "uri", "pattern": "^https?://"}
+      }
+    },
+    "linksField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin", "source_fingerprint"],
+      "properties": {
+        "value": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {"$ref": "#/$defs/link"}
+        },
+        "origin": {"$ref": "#/$defs/fieldOrigin"},
+        "source_fingerprint": {"$ref": "#/$defs/nullableSha256"}
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "description",
+        "tags",
+        "hashtags",
+        "artist_name",
+        "channel_name",
+        "credits",
+        "links",
+        "visibility",
+        "pinned_comment",
+        "release_album_plan_id",
+        "related_video_url"
+      ],
+      "properties": {
+        "title": {"$ref": "#/$defs/titleField"},
+        "description": {"$ref": "#/$defs/descriptionField"},
+        "tags": {"$ref": "#/$defs/stringListField"},
+        "hashtags": {"$ref": "#/$defs/stringListField"},
+        "artist_name": {"$ref": "#/$defs/identityField"},
+        "channel_name": {"$ref": "#/$defs/identityField"},
+        "credits": {"$ref": "#/$defs/creditsField"},
+        "links": {"$ref": "#/$defs/linksField"},
+        "visibility": {"$ref": "#/$defs/visibilityField"},
+        "pinned_comment": {"$ref": "#/$defs/optionalTextField"},
+        "release_album_plan_id": {"$ref": "#/$defs/optionalIdField"},
+        "related_video_url": {"$ref": "#/$defs/optionalUriField"}
+      }
+    },
+    "chapterSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "canonical_text_sha256",
+        "artifact_path",
+        "artifact_sha256",
+        "render_report_revision"
+      ],
+      "properties": {
+        "source_kind": {"enum": ["wu3a_timeline", "verified_artifact"]},
+        "canonical_text_sha256": {"$ref": "#/$defs/sha256"},
+        "artifact_path": {
+          "oneOf": [
+            {"const": "output/metadata/chapters.txt"},
+            {"type": "null"}
+          ]
+        },
+        "artifact_sha256": {"$ref": "#/$defs/nullableSha256"},
+        "render_report_revision": {
+          "oneOf": [
+            {"type": "integer", "minimum": 0},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "chapterEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "track_id", "start_seconds", "source_label", "label"],
+      "properties": {
+        "index": {"type": "integer", "minimum": 0},
+        "track_id": {"$ref": "#/$defs/id"},
+        "start_seconds": {"type": "integer", "minimum": 0},
+        "source_label": {"type": "string", "minLength": 1, "maxLength": 200},
+        "label": {"$ref": "#/$defs/identityField"}
+      }
+    },
+    "chapters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "entries"],
+      "properties": {
+        "source": {"$ref": "#/$defs/chapterSource"},
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/chapterEntry"}
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approved_fingerprint", "approved_at"],
+      "properties": {
+        "approved_fingerprint": {"$ref": "#/$defs/sha256"},
+        "approved_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "editorTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_key",
+        "target",
+        "lifecycle",
+        "basis",
+        "content",
+        "chapters",
+        "approval"
+      ],
+      "properties": {
+        "target_key": {"$ref": "#/$defs/targetKey"},
+        "target": {"$ref": "#/$defs/targetReference"},
+        "lifecycle": {"enum": ["active", "archived", "orphaned"]},
+        "basis": {"$ref": "#/$defs/basis"},
+        "content": {"$ref": "#/$defs/content"},
+        "chapters": {
+          "oneOf": [
+            {"$ref": "#/$defs/chapters"},
+            {"type": "null"}
+          ]
+        },
+        "approval": {
+          "oneOf": [
+            {"$ref": "#/$defs/approval"},
+            {"type": "null"}
+          ]
+        }
+      }
+    }
+  }
+}

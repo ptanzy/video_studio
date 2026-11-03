@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loadCreationState, saveCreationState } from '../src/api/client'
+import { loadCatalog, loadCreationState, saveCreationState } from '../src/api/client'
 import type { CreationState, CreationStateV3, CreationStateV4 } from '../src/api/types'
 
 const state = (): CreationState => ({ contract_version: 'wrld-creation-state/1.0', project_id: 'project-1', revision: 1, save_id: 'old', preferred_short_duration_seconds: 45, albums: [], singles: [], shorts: [], state_digest: '0'.repeat(64), issues: [] })
@@ -93,5 +93,22 @@ describe('revision-safe save reconciliation', () => {
   it('preserves a structured revision conflict for explicit UI recovery', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => response(409, { error: { code: 'REVISION_CONFLICT', message: 'A newer revision exists.', details: { current_revision: 2 } } })))
     await expect(saveCreationState('project-1', state())).rejects.toMatchObject({ code: 'REVISION_CONFLICT', status: 409 })
+  })
+})
+
+describe('API response diagnostics', () => {
+  it('reports Vite HTML fallback as a proxy/backend configuration error', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<!doctype html><title>WRLD</title>', { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } })))
+    await expect(loadCatalog()).rejects.toMatchObject({
+      code: 'API_RESPONSE_INVALID',
+      status: 200,
+      details: { content_type: 'text/html', http_status: 200 },
+    })
+    await expect(loadCatalog()).rejects.toThrow(/returned HTML instead of JSON.*Restart the Vite development server/i)
+  })
+
+  it('reports malformed JSON without fabricating an empty catalog', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{not-json', { status: 200, headers: { 'Content-Type': 'application/json' } })))
+    await expect(loadCatalog()).rejects.toMatchObject({ code: 'API_RESPONSE_INVALID', status: 200 })
   })
 })

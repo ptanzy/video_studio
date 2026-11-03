@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from wrld_video_studio.domain.wu4 import API_ERROR_VERSION, WU4Error
-from wrld_video_studio.interfaces.http.wu4_models import RegisterProjectModel, RelinkAssetModel, RelinkProjectModel, SaveEditorStateModel, SaveProjectDocumentModel, StartScanModel
+from wrld_video_studio.interfaces.http.wu4_models import ExportMetadataModel, ExportPreviewModel, InitializeMetadataModel, ReconcileMetadataModel, ReconcilePreviewModel, RegisterProjectModel, RelinkAssetModel, RelinkProjectModel, SaveEditorStateModel, SaveProjectDocumentModel, StartScanModel, ValidateMetadataModel
 
 
 WU4_HTTP_STATUS = {
@@ -29,6 +29,13 @@ WU4_HTTP_STATUS = {
     "PROJECT_DOCUMENT_NOT_FOUND": 404, "PROJECT_DOCUMENT_INVALID": 422,
     "PROJECT_PREFERENCES_INVALID": 422, "CREATION_STATE_INVALID": 422,
     "ANALYZER_UNAVAILABLE": 422,
+    "METADATA_STATE_NOT_FOUND": 404, "METADATA_TARGET_NOT_FOUND": 404,
+    "CREATION_UPGRADE_REQUIRED": 409, "METADATA_ALREADY_INITIALIZED": 409,
+    "METADATA_RECONCILE_STALE": 409, "METADATA_EXPORT_PREVIEW_STALE": 409,
+    "METADATA_EXPORT_EXISTS": 409, "METADATA_EXPORT_CHANGED": 409,
+    "METADATA_EXPORT_OWNERSHIP_UNKNOWN": 409,
+    "METADATA_STATE_INVALID": 422, "METADATA_VALIDATION_FAILED": 422,
+    "METADATA_APPROVAL_INVALID": 422, "METADATA_EXPORT_SELECTION_INVALID": 422,
 }
 
 
@@ -106,6 +113,46 @@ def creation_state(project_id: str, request: Request):
 @router.put("/projects/{project_id}/creation-state")
 def save_creation_state(project_id: str, payload: SaveProjectDocumentModel, request: Request):
     return _runtime(request).creation.put(project_id, payload.expected_revision, payload.save_id, payload.state)
+
+
+@router.get("/projects/{project_id}/youtube-metadata")
+def youtube_metadata(project_id: str, request: Request):
+    return _runtime(request).youtube_metadata.get(project_id)
+
+
+@router.post("/projects/{project_id}/youtube-metadata/initialize", status_code=201)
+def initialize_youtube_metadata(project_id: str, payload: InitializeMetadataModel, request: Request):
+    return _runtime(request).youtube_metadata.initialize(project_id, payload.save_id, payload.creation_revision, payload.creation_state_digest)
+
+
+@router.put("/projects/{project_id}/youtube-metadata")
+def save_youtube_metadata(project_id: str, payload: SaveProjectDocumentModel, request: Request):
+    return _runtime(request).youtube_metadata.put(project_id, payload.expected_revision, payload.save_id, payload.state)
+
+
+@router.post("/projects/{project_id}/youtube-metadata/validate")
+def validate_youtube_metadata(project_id: str, payload: ValidateMetadataModel, request: Request):
+    return _runtime(request).youtube_metadata.validate(project_id, payload.state, payload.mode, payload.target_keys)
+
+
+@router.post("/projects/{project_id}/youtube-metadata/reconcile-preview")
+def preview_youtube_metadata_reconcile(project_id: str, payload: ReconcilePreviewModel, request: Request):
+    return _runtime(request).youtube_metadata.reconcile_preview(project_id, payload.expected_revision, [item.model_dump() for item in payload.refresh_fields], [item.model_dump() for item in payload.carry_chapter_labels])
+
+
+@router.post("/projects/{project_id}/youtube-metadata/reconcile")
+def reconcile_youtube_metadata(project_id: str, payload: ReconcileMetadataModel, request: Request):
+    return _runtime(request).youtube_metadata.reconcile(project_id, payload.expected_revision, payload.save_id, payload.preview_fingerprint, [item.model_dump() for item in payload.refresh_fields], [item.model_dump() for item in payload.carry_chapter_labels])
+
+
+@router.post("/projects/{project_id}/youtube-metadata/export-preview")
+def preview_youtube_metadata_export(project_id: str, payload: ExportPreviewModel, request: Request):
+    return _runtime(request).youtube_metadata.export_preview(project_id, payload.expected_revision, payload.target_keys)
+
+
+@router.post("/projects/{project_id}/youtube-metadata/exports")
+def export_youtube_metadata(project_id: str, payload: ExportMetadataModel, request: Request):
+    return _runtime(request).youtube_metadata.export(project_id, payload.expected_revision, payload.target_keys, payload.preview_fingerprint, payload.replace_existing, payload.expected_existing_sha256)
 
 
 @router.get("/projects/{project_id}/inventory")

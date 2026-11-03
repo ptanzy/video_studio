@@ -49,6 +49,7 @@ from wrld_video_studio.infrastructure.override_store import OverrideStore
 from wrld_video_studio.infrastructure.project_catalog import ProjectCatalogStore
 from wrld_video_studio.infrastructure.project_inventory import ProjectInventoryStore
 from wrld_video_studio.infrastructure.project_document_store import ProjectDocumentStore
+from wrld_video_studio.application.youtube_metadata import YouTubeMetadataService
 from wrld_video_studio.infrastructure.project_resources import TrustedProjectResolver
 from wrld_video_studio.infrastructure.scan_attempt_store import ScanAttemptStore
 from wrld_video_studio.infrastructure.project_sources import FilesystemVideoProjectLoader
@@ -82,6 +83,7 @@ class WU4ApplicationConfig:
     inventory_schema: Path | None = None
     project_preferences_schema: Path | None = None
     creation_state_schema: Path | None = None
+    youtube_metadata_editor_schema: Path | None = None
     thumbnail_root: Path | None = None
     ffmpeg_path: Path | None = None
     ffprobe_path: Path | None = None
@@ -95,7 +97,7 @@ class WU4ApplicationConfig:
         for path in (self.state_root, self.override_schema, self.catalog_schema, self.editor_state_schema, *self.manifest_schemas):
             if not isinstance(path, Path) or not path.is_absolute():
                 raise ValueError("WU4 paths must be absolute Path values.")
-        for path in (self.inventory_schema, self.project_preferences_schema, self.creation_state_schema, self.thumbnail_root, self.ffmpeg_path, self.ffprobe_path):
+        for path in (self.inventory_schema, self.project_preferences_schema, self.creation_state_schema, self.youtube_metadata_editor_schema, self.thumbnail_root, self.ffmpeg_path, self.ffprobe_path):
             if path is not None and (not isinstance(path, Path) or not path.is_absolute()):
                 raise ValueError("Optional WU4 paths must be absolute Path values.")
         if not isinstance(self.scan_policy, InventoryScanPolicy):
@@ -223,6 +225,19 @@ class WU4ApplicationRuntime:
             albums=self.albums,
             editors=self.editors,
             preferences=self.preferences,
+        )
+        metadata_schema = config.youtube_metadata_editor_schema or config.catalog_schema.parent / "youtube-metadata-editor-v1.schema.json"
+        metadata_store = ProjectDocumentStore(
+            OverrideStore(config.state_root / "youtube-metadata", config.override_schema),
+            metadata_schema,
+            label="YouTube metadata",
+        )
+        self.youtube_metadata = YouTubeMetadataService(
+            self.catalogs,
+            self.inventories,
+            self.albums,
+            self.creation,
+            metadata_store,
         )
         scan_schema = config.catalog_schema.parent / "project-scan-v1.schema.json"
         scan_store = ScanAttemptStore(

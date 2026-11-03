@@ -5,11 +5,21 @@ import type { WRLDCreationStateV1, Album as CreationAlbum, Assignment as AlbumAs
 import type { WRLDCreationStateV2, VisualTemplate, Album as CreationAlbumV2, Single as SingleDraftV2, Short as ShortDraftV2 } from './generated/creation-state-v2'
 import type { WRLDCreationStateV3, VisualTemplateFamily, Album as CreationAlbumV3, Single as SingleDraftV3, Short as ShortDraftV3 } from './generated/creation-state-v3'
 import type { WRLDCreationStateV4, Album as CreationAlbumV4, Single as SingleDraftV4, Short as ShortDraftV4 } from './generated/creation-state-v4'
+import type { WRLDYouTubeMetadataEditorStateV1 } from './generated/youtube-metadata-editor-v1'
+import type { WRLDPortableYouTubeMetadataV1 } from './generated/youtube-metadata-v1'
 import type { WRLDPrivateProjectCatalogV2 } from './generated/project-catalog-v2'
 import type { Asset as InventoryAssetTransport, WRLDProjectInventoryV1 } from './generated/project-inventory-v1'
 import type { WRLDProjectScanStatusV1 } from './generated/project-scan-v1'
 
 export type SourceMode = 'backend' | 'inventory' | 'demonstration'
+export type YouTubeMetadataState = WRLDYouTubeMetadataEditorStateV1
+export type YouTubeMetadataExport = WRLDPortableYouTubeMetadataV1
+
+export interface MetadataDiagnostic { code: string; severity: 'error' | 'warning'; target_key: string | null; field: string | null; message: string; details: Record<string, unknown> }
+export interface MetadataValidation { contract_version: 'wrld-youtube-metadata-validation/1.0'; mode: 'draft' | 'approval' | 'export'; valid: boolean; target_fingerprints: Array<{ target_key: string; approval_fingerprint: string | null }>; diagnostics: MetadataDiagnostic[] }
+export interface MetadataReconcilePreview { contract_version: 'wrld-youtube-metadata-reconcile-preview/1.0'; editor_revision: number; creation_revision: number; preview_fingerprint: string; changes: Array<{ kind: string; target_key: string; field: string | null }>; candidate: YouTubeMetadataState; diagnostics: MetadataDiagnostic[] }
+export interface MetadataExportPreview { contract_version: 'wrld-youtube-metadata-export-preview/1.0'; editor_revision: number; eligible: boolean; preview_fingerprint: string; proposed_sha256: string; predicted_export_revision: number; existing_sha256: string | null; document: YouTubeMetadataExport; diagnostics: MetadataDiagnostic[] }
+export interface MetadataExportResult { contract_version: 'wrld-youtube-metadata-export-result/1.0'; path: 'output/metadata/youtube_metadata.json'; sha256: string; byte_size: number; revision: number; reused: boolean; document: YouTubeMetadataExport }
 
 export type ProjectSummary = WRLDPrivateProjectCatalogV2['projects'][number] & { availability: 'available' | 'unavailable' | 'removed' }
 

@@ -45,7 +45,7 @@ describe('WU4 Phase 2A prototype', () => {
     await enterDemo(user)
     expect(screen.getByRole('heading', { name: /Import Media/i })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Metadata/i }))
-    expect(screen.getByText(/Metadata is not implemented in WU4/i)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Metadata unavailable/i })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Render/i }))
     expect(screen.getByText(/Rendering is not controlled from this UI yet/i)).toBeInTheDocument()
   })

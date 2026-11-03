@@ -72,6 +72,10 @@ class ProjectDocumentStore:
             raise WU4Error("STORAGE_ERROR", f"{self._label} could not be saved.", dict(error.details)) from error
         return copy.deepcopy(stored["overrides"])
 
+    def validate(self, document: Mapping[str, Any]) -> None:
+        """Validate an unsaved candidate against this store's configured contract."""
+        self._validate(document)
+
     def _prepare(self, document: Mapping[str, Any], *, revision: int) -> dict[str, Any]:
         value = copy.deepcopy(dict(document))
         value["revision"] = revision

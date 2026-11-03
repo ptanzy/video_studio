@@ -5,7 +5,7 @@ import { useStudio, type Route } from '../app/state'
 const nav: Array<{ route: Route; label: string; caption: string; icon: typeof Album }> = [
   { route: 'import', label: 'Import', caption: 'Projects & validation', icon: Download },
   { route: 'review', label: 'Review', caption: 'Tracks & Shorts', icon: LayoutDashboard },
-  { route: 'metadata', label: 'Metadata', caption: 'WU5 · unavailable', icon: Music2 },
+  { route: 'metadata', label: 'Metadata', caption: 'Publishing workspace', icon: Music2 },
   { route: 'render', label: 'Render', caption: 'WU6 · unavailable', icon: Clapperboard },
 ]
 
@@ -20,7 +20,7 @@ export const Shell = ({ children }: { children: ReactNode }) => {
         {nav.map(({ route, label, caption, icon: Icon }) => <button
           key={route} className={`nav-item ${state.route === route ? 'active' : ''}`}
           onClick={() => requestGuarded(() => dispatch({ type: 'navigate', route }))} aria-current={state.route === route ? 'page' : undefined}
-        ><Icon size={19} /><span><strong>{label}</strong><small>{caption}</small></span>{(route === 'metadata' || route === 'render') && <em>Later</em>}</button>)}
+        ><Icon size={19} /><span><strong>{label}</strong><small>{caption}</small></span>{route === 'render' && <em>Later</em>}</button>)}
       </nav>
       <div className="sidebar-context">
         <div className="eyebrow">Active workspace</div>

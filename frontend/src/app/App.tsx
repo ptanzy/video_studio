@@ -4,6 +4,7 @@ import { Shell } from '../components/Shell'
 import { ImportPage } from '../features/import/ImportPage'
 import { ReviewPage } from '../features/review/ReviewPage'
 import { FuturePage } from '../features/future/FuturePage'
+import { MetadataWorkspace } from '../features/metadata/MetadataWorkspace'
 import { useStudio } from './state'
 
 export const App = () => {
@@ -21,7 +22,7 @@ export const App = () => {
   return <Shell>
     {state.route === 'import' && <ImportPage />}
     {state.route === 'review' && <ReviewPage />}
-    {state.route === 'metadata' && <FuturePage kind="metadata" />}
+    {state.route === 'metadata' && <MetadataWorkspace />}
     {state.route === 'render' && <FuturePage kind="render" />}
   </Shell>
 }

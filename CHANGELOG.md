@@ -1,5 +1,7 @@
 ## Unreleased — consolidated WU4 candidate
 
+- Adds the approved WU5 Metadata candidate: separate revisioned project-local editor state and portable selected-set export contracts; deterministic Creation v4 Album/Single/Short drafts; explicit initialization, reconciliation, validation, target approval and Save; WU3A-authoritative chapter timing; collision-safe atomic export; generated TypeScript transports; and a guarded Table/Detail Metadata workspace. No legacy drafts or production project data are migrated automatically, and WU6 remains deferred.
+
 - Adds the Phase 4A Creation v4 foundation and Phase 4B native authoring workflow: composition-owned authoritative visual settings, historical template provenance, deterministic sequential upgrades, isolated composition editing, role-aware Apply/Update/Save-as-New template actions, a searchable family/standalone Template Library, and conservative explicit legacy cleanup. WU3 rendering remains unchanged and WU6 mapping remains deferred.
 - Adds flexible trusted-root project registration, bounded recursive media inventory, secure audio/image resources, persistent reversible exclusions and a project-level Import-to-Review handoff.
 - Adds revision-safe Creation planning for Albums, Singles and Shorts, including stable duplicate assignments, independent draft counts, archive/restore, editable sample-frame excerpts, missing/changed-source issues and preservation of existing primary Short identities.

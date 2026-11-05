@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/creation-render-recovery-preflight-v1.schema.json",
+  "title": "WRLD Creation Render Recovery Preflight v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "status", "recovery_fingerprint", "plan", "candidate", "diagnostics", "existing_artifact", "report_revision"],
+  "properties": {
+    "contract_version": {"const": "wrld-creation-render-recovery-preflight/1.0"},
+    "status": {"enum": ["ready", "blocked", "replacement_required"]},
+    "recovery_fingerprint": {"oneOf": [{"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"}, {"type": "null"}]},
+    "plan": {"oneOf": [{"$ref": "creation-render-plan-v1.schema.json"}, {"type": "null"}]},
+    "candidate": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["contract_version", "project_id", "failed_job_id", "failed_attempt_id", "plan_fingerprint", "staged_sha256", "staged_byte_size", "output_relative_path", "profile_id", "renderer_id", "renderer_version", "artifact_report_revision"],
+          "properties": {
+            "contract_version": {"const": "wrld-creation-render-recovery-candidate/1.0"},
+            "project_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"},
+            "failed_job_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"},
+            "failed_attempt_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"},
+            "plan_fingerprint": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+            "staged_sha256": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+            "staged_byte_size": {"type": "integer", "minimum": 1},
+            "output_relative_path": {"$ref": "creation-render-common-v1.schema.json#/$defs/portablePath"},
+            "profile_id": {"enum": ["wrld-album-1080p30-v1", "wrld-single-1080p30-v1", "wrld-short-1080x1920p30-v1"]},
+            "renderer_id": {"const": "wrld-creation-renderer"},
+            "renderer_version": {"type": "string", "minLength": 1},
+            "artifact_report_revision": {"type": "integer", "minimum": 0}
+          }
+        }
+      ]
+    },
+    "diagnostics": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["severity", "code", "message", "details"], "properties": {"severity": {"const": "error"}, "code": {"enum": ["RECOVERY_JOB_NOT_FOUND", "RECOVERY_PROJECT_MISMATCH", "RECOVERY_ATTEMPT_MISMATCH", "RECOVERY_JOB_NOT_FAILED", "RECOVERY_PLAN_STALE", "RECOVERY_PROFILE_MISMATCH", "RECOVERY_RENDERER_MISMATCH", "RECOVERY_STAGING_MISSING", "RECOVERY_STAGING_INCOMPLETE", "RECOVERY_STAGING_CHANGED", "RECOVERY_PROVENANCE_MISMATCH", "RECOVERY_RECEIPT_STALE", "RECOVERY_PUBLICATION_VOLUME_MISMATCH", "RECOVERY_DISK_SPACE_INSUFFICIENT", "OUTPUT_EXISTS", "OUTPUT_REPLACEMENT_STALE", "RECOVERY_INDETERMINATE"]}, "message": {"type": "string", "minLength": 1}, "details": {"type": "object"}}}},
+    "existing_artifact": {"oneOf": [{"$ref": "creation-render-common-v1.schema.json#/$defs/verifiedArtifact"}, {"type": "null"}]},
+    "report_revision": {"type": "integer", "minimum": 0}
+  }
+}

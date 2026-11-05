@@ -74,9 +74,22 @@ class YouTubeMetadata:
     def export(self, project_id: str, expected_revision: int, target_keys, preview_fingerprint: str, replace_existing: bool, expected_existing_sha256): return {"project_id": project_id, "target_keys": target_keys, "preview_fingerprint": preview_fingerprint, "replace_existing": replace_existing, "expected_existing_sha256": expected_existing_sha256}
 
 
+class CreationRender:
+    def targets(self, project_id: str): return {"contract_version": "wrld-creation-render-targets/1.0", "project_id": project_id, "targets": []}
+    def preflight(self, project_id: str, payload: dict): return {"contract_version": "wrld-creation-render-preflight/1.0", "project_id": project_id, "mode": payload["mode"]}
+    def submit(self, project_id: str, payload: dict): return ({"job_id": "job-1", "project_id": project_id, "state": "queued"}, True)
+    def recovery_preflight(self, project_id: str, payload: dict): return {"contract_version": "wrld-creation-render-recovery-preflight/1.0", "project_id": project_id, "mode": payload["mode"]}
+    def submit_recovery(self, project_id: str, payload: dict): return ({"job_id": "recovery-job-1", "project_id": project_id, "state": "queued"}, True)
+    def list_jobs(self, project_id: str): return [{"job_id": "job-1", "project_id": project_id, "state": "queued", "target": {"composition_id": "single-1"}}]
+    def get_job(self, project_id: str, job_id: str): return {"job_id": job_id, "project_id": project_id, "state": "running"}
+    def result(self, project_id: str, job_id: str): return {"job_id": job_id, "project_id": project_id, "state": "succeeded"}
+    def cancel(self, project_id: str, job_id: str): return {"job_id": job_id, "project_id": project_id, "state": "cancel_requested"}
+    def artifact(self, project_id: str, artifact_id: str): return {"artifact_id": artifact_id, "project_id": project_id}
+
+
 def app() -> FastAPI:
     value = FastAPI()
-    value.state.wu4_runtime = SimpleNamespace(albums=Albums(), assets=Assets(), inventories=Inventories(), scans=Scans(), preferences=ProjectDocumentService("wrld-project-preferences/1.0"), creation=ProjectDocumentService("wrld-creation-state/1.0"), youtube_metadata=YouTubeMetadata())
+    value.state.wu4_runtime = SimpleNamespace(albums=Albums(), assets=Assets(), inventories=Inventories(), scans=Scans(), preferences=ProjectDocumentService("wrld-project-preferences/1.0"), creation=ProjectDocumentService("wrld-creation-state/1.0"), youtube_metadata=YouTubeMetadata(), creation_render=CreationRender())
     value.include_router(router)
     value.add_exception_handler(WU4Error, lambda _request, error: error_response(error))
     return value
@@ -161,6 +174,25 @@ def test_youtube_metadata_routes_are_project_scoped_and_revision_safe_shapes():
         assert export_preview.json()["target_keys"] == ["single:s"]
         exported = client.post(f"{base}/exports", json={"expected_revision": 2, "target_keys": ["single:s"], "preview_fingerprint": "a" * 64, "replace_existing": False, "expected_existing_sha256": None})
         assert exported.json()["replace_existing"] is False
+
+
+def test_creation_render_routes_are_project_scoped_and_preserve_async_statuses():
+    with TestClient(app()) as client:
+        base = "/api/v1/projects/p"
+        assert client.get(f"{base}/render-targets").json()["project_id"] == "p"
+        assert client.post(f"{base}/render-preflights", json={"mode": "preflight"}).json()["mode"] == "preflight"
+        submitted = client.post(f"{base}/render-jobs", json={"mode": "submit"})
+        assert submitted.status_code == 202 and submitted.json()["state"] == "queued"
+        recovery = client.post(f"{base}/render-recovery-preflights", json={"mode": "preflight"})
+        assert recovery.status_code == 200 and recovery.json()["mode"] == "preflight"
+        recovered = client.post(f"{base}/render-recovery-jobs", json={"mode": "submit"})
+        assert recovered.status_code == 202 and recovered.json()["job_id"] == "recovery-job-1"
+        assert client.get(f"{base}/render-jobs?state=queued&composition_id=single-1").json()[0]["job_id"] == "job-1"
+        assert client.get(f"{base}/render-jobs/job-1").json()["state"] == "running"
+        assert client.get(f"{base}/render-jobs/job-1/result").json()["state"] == "succeeded"
+        cancelled = client.delete(f"{base}/render-jobs/job-1")
+        assert cancelled.status_code == 202 and cancelled.json()["state"] == "cancel_requested"
+        assert client.get(f"{base}/render-artifacts/artifact-1").json()["artifact_id"] == "artifact-1"
 
 
 @pytest.mark.integration_ffmpeg

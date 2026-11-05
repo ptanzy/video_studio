@@ -47,7 +47,7 @@ describe('WU4 Phase 2A prototype', () => {
     await user.click(screen.getByRole('button', { name: /^Metadata/i }))
     expect(await screen.findByRole('heading', { name: /Metadata unavailable/i })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Render/i }))
-    expect(screen.getByText(/Rendering is not controlled from this UI yet/i)).toBeInTheDocument()
+    expect(await screen.findByText(/offline/i)).toBeInTheDocument()
   })
 
   it('selects an album track and opens its primary Short in Review', async () => {

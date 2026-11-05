@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/creation-render-plan-v1.schema.json",
+  "title": "WRLD Creation Render Plan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "plan_id", "plan_fingerprint", "request_fingerprint", "project_id", "target", "creation_basis", "profile", "visual_configuration", "visual_configuration_fingerprint", "audio_sources", "background_source", "timeline", "output", "dependencies", "source_set_fingerprint", "renderer"],
+  "properties": {
+    "contract_version": {"const": "wrld-creation-render-plan/1.0"},
+    "plan_id": {"type": "string", "pattern": "^plan-[0-9a-f]{64}$"},
+    "plan_fingerprint": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+    "request_fingerprint": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+    "project_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"},
+    "target": {"$ref": "creation-render-common-v1.schema.json#/$defs/target"},
+    "creation_basis": {"$ref": "creation-render-common-v1.schema.json#/$defs/creationBasis"},
+    "profile": {"$ref": "creation-render-common-v1.schema.json#/$defs/profile"},
+    "visual_configuration": {"$ref": "creation-state-v4.schema.json#/$defs/visualConfiguration"},
+    "visual_configuration_fingerprint": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+    "audio_sources": {"type": "array", "minItems": 1, "items": {"$ref": "creation-render-common-v1.schema.json#/$defs/audioSource"}},
+    "background_source": {"$ref": "creation-render-common-v1.schema.json#/$defs/resolvedSource"},
+    "timeline": {"$ref": "creation-render-common-v1.schema.json#/$defs/timeline"},
+    "output": {"$ref": "creation-render-common-v1.schema.json#/$defs/output"},
+    "dependencies": {"type": "array", "minItems": 2, "items": {"$ref": "creation-render-common-v1.schema.json#/$defs/dependency"}},
+    "source_set_fingerprint": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+    "renderer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["renderer_id", "contract_version", "renderer_version", "ffmpeg_version", "ffprobe_version"],
+      "properties": {
+        "renderer_id": {"const": "wrld-creation-renderer"},
+        "contract_version": {"const": "wrld-creation-renderer/1.0"},
+        "renderer_version": {"type": "string", "minLength": 1, "maxLength": 128},
+        "ffmpeg_version": {"type": "string", "minLength": 1, "maxLength": 256},
+        "ffprobe_version": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    }
+  }
+}

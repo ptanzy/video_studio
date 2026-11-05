@@ -3,8 +3,8 @@ import { loadCatalog } from '../api/client'
 import { Shell } from '../components/Shell'
 import { ImportPage } from '../features/import/ImportPage'
 import { ReviewPage } from '../features/review/ReviewPage'
-import { FuturePage } from '../features/future/FuturePage'
 import { MetadataWorkspace } from '../features/metadata/MetadataWorkspace'
+import { RenderWorkspace } from '../features/render/RenderWorkspace'
 import { useStudio } from './state'
 
 export const App = () => {
@@ -23,6 +23,6 @@ export const App = () => {
     {state.route === 'import' && <ImportPage />}
     {state.route === 'review' && <ReviewPage />}
     {state.route === 'metadata' && <MetadataWorkspace />}
-    {state.route === 'render' && <FuturePage kind="render" />}
+    {state.route === 'render' && <RenderWorkspace />}
   </Shell>
 }

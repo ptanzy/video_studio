@@ -45,11 +45,14 @@ from wrld_video_studio.infrastructure.media_tools import MediaTool
 from wrld_video_studio.infrastructure.artwork_theme import FFmpegArtworkThemeResolver
 from wrld_video_studio.infrastructure.editor_state_store import EditorStateStore
 from wrld_video_studio.infrastructure.ffprobe_adapter import FFprobeAdapter
+from wrld_video_studio.infrastructure.artifact_verifier import FFmpegArtifactVerifier
+from wrld_video_studio.infrastructure.video_export_renderer import StaticVideoExportRenderer
 from wrld_video_studio.infrastructure.override_store import OverrideStore
 from wrld_video_studio.infrastructure.project_catalog import ProjectCatalogStore
 from wrld_video_studio.infrastructure.project_inventory import ProjectInventoryStore
 from wrld_video_studio.infrastructure.project_document_store import ProjectDocumentStore
 from wrld_video_studio.application.youtube_metadata import YouTubeMetadataService
+from wrld_video_studio.application.creation_render import CreationRenderService
 from wrld_video_studio.infrastructure.project_resources import TrustedProjectResolver
 from wrld_video_studio.infrastructure.scan_attempt_store import ScanAttemptStore
 from wrld_video_studio.infrastructure.project_sources import FilesystemVideoProjectLoader
@@ -245,8 +248,20 @@ class WU4ApplicationRuntime:
         )
         self.scans = InventoryScanCoordinator(self.inventories, config.scan_policy, scan_store)
         self.assets = AssetResourceService(self.inventories, toolchain, runner, config.thumbnail_root or config.state_root / "thumbnails")
+        # WU6 artifact verification does not consume frame counts. Avoid a full
+        # packet scan of long-form outputs before the separate full-decode pass.
+        render_prober = FFprobeAdapter(toolchain, runner, count_frames=False)
+        self.creation_render = CreationRenderService(
+            self,
+            config.state_root,
+            toolchain,
+            render_prober,
+            StaticVideoExportRenderer(toolchain, runner),
+            FFmpegArtifactVerifier(render_prober, toolchain, runner),
+        )
 
     def close(self) -> None:
+        self.creation_render.close()
         self.scans.close()
 
 

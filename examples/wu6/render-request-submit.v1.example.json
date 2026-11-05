@@ -1,0 +1,12 @@
+{
+  "contract_version": "wrld-creation-render-request/1.0",
+  "mode": "submit",
+  "target": {"kind": "short", "composition_id": "short-audio-01-01"},
+  "expected_creation_revision": 7,
+  "expected_creation_state_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "profile_id": "wrld-short-1080x1920p30-v1",
+  "expected_plan_fingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "submission_id": "8d4f9271-3f30-4dc6-a539-5daf0b4385fd",
+  "output_action": "reuse_verified_or_fail",
+  "replacement": null
+}

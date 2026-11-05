@@ -1,0 +1,18 @@
+{
+  "contract_version": "wrld-creation-render-preflight/1.0",
+  "status": "blocked",
+  "request_fingerprint": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "plan": null,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "VISUAL_SOURCE_REQUIRED",
+      "message": "The composition requires an explicitly selected background image before rendering.",
+      "target": {"kind": "short", "composition_id": "short-audio-01-01"},
+      "asset_id": null,
+      "details": {"field": "visual_configuration.background_image"}
+    }
+  ],
+  "existing_artifact": null,
+  "report_revision": 3
+}

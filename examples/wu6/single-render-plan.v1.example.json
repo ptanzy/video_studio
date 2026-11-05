@@ -1,0 +1,19 @@
+{
+  "contract_version": "wrld-creation-render-plan/1.0",
+  "plan_id": "plan-5555555555555555555555555555555555555555555555555555555555555555",
+  "plan_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555",
+  "request_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666",
+  "project_id": "9bb056bb-6325-429e-963e-a3d4f2edd77d",
+  "target": {"kind": "single", "composition_id": "single-audio-01"},
+  "creation_basis": {"contract_version": "wrld-creation-state/4.0", "revision": 7, "state_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "composition_fingerprint": "7777777777777777777777777777777777777777777777777777777777777777"},
+  "profile": {"profile_id": "wrld-single-1080p30-v1", "width": 1920, "height": 1080, "frame_rate": 30, "pixel_format": "yuv420p", "video_codec": "h264", "video_profile": "High", "video_encoder": "libx264", "video_preset": "medium", "video_crf": 18, "color_space": "bt709", "color_transfer": "bt709", "color_primaries": "bt709", "audio_codec": "aac", "audio_profile": "LC", "audio_bitrate": 192000, "audio_sample_rate": 48000, "audio_channels": 2, "channel_layout": "stereo", "container": "mp4", "faststart": true, "duration_tolerance_seconds": 0.25, "full_decode_verification": true},
+  "visual_configuration": {"canvas": {"aspect_ratio": "16:9"}, "background_image": {"asset_id": "image-cover-01", "expected_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}, "geometry": {"fit_mode": "contain", "focal_x": 0.5, "focal_y": 0.5}, "camera": {"mode": "static", "max_zoom": 1.04}, "visualizer": {"enabled": false, "bar_count": 24, "opacity": 0.65}, "progress": {"enabled": true}, "color_treatment": {"mode": "none"}},
+  "visual_configuration_fingerprint": "8888888888888888888888888888888888888888888888888888888888888888",
+  "audio_sources": [{"asset_id": "audio-01", "expected_sha256": "1111111111111111111111111111111111111111111111111111111111111111", "observed_sha256": "1111111111111111111111111111111111111111111111111111111111111111", "relative_path": "recordings/01.wav", "mime_type": "audio/wav", "sequence": 1, "assignment_id": null, "source_start_sample": 0, "sample_count": 8640000}],
+  "background_source": {"asset_id": "image-cover-01", "expected_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "observed_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "relative_path": "artwork/cover.png", "mime_type": "image/png"},
+  "timeline": {"contract_version": "wrld-creation-render-timeline/1.0", "timeline_id": "timeline-9999999999999999999999999999999999999999999999999999999999999999", "sample_rate": 48000, "total_samples": 8640000, "duration_seconds": 180.0, "entries": [{"sequence": 1, "assignment_id": null, "asset_id": "audio-01", "asset_sha256": "1111111111111111111111111111111111111111111111111111111111111111", "source_start_sample": 0, "output_start_sample": 0, "sample_count": 8640000, "output_end_sample": 8640000}]},
+  "output": {"artifact_kind": "single_video", "relative_path": "output/tracks/single-audio-01.mp4"},
+  "dependencies": [{"kind": "audio", "asset_id": "audio-01", "sha256": "1111111111111111111111111111111111111111111111111111111111111111"}, {"kind": "background_image", "asset_id": "image-cover-01", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}],
+  "source_set_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+  "renderer": {"renderer_id": "wrld-creation-renderer", "contract_version": "wrld-creation-renderer/1.0", "renderer_version": "wu6-creation-renderer-1", "ffmpeg_version": "ffmpeg 9.0.2", "ffprobe_version": "ffprobe 9.0.2"}
+}

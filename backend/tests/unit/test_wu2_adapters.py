@@ -85,6 +85,20 @@ def test_ffprobe_parses_known_and_unknown_stream_fields(tmp_path):
     assert probe.format_tags == {"comment": "tag"}
 
 
+def test_ffprobe_can_skip_expensive_frame_counting_for_artifact_verification(tmp_path):
+    runner = FakeRunner(ProcessExecution(0, json.dumps({"format": {"format_name": "mp4", "duration": "1.0"}, "streams": []}), ""))
+    toolchain = MediaToolchain(runner)
+    toolchain.resolve = lambda _name: type("Tool", (), {"path": Path("ffprobe"), "version": "v"})()
+    source = tmp_path / "output.mp4"
+    source.write_bytes(b"fixture")
+
+    FFprobeAdapter(toolchain, runner, count_frames=False).probe(source)
+
+    assert "-count_frames" not in runner.argv[0]
+    assert "-show_format" in runner.argv[0]
+    assert "-show_streams" in runner.argv[0]
+
+
 @pytest.mark.parametrize("payload", ["{broken", "NaN", "[]"])
 def test_ffprobe_rejects_malformed_or_non_object_output(tmp_path, payload):
     runner = FakeRunner(ProcessExecution(0, payload, ""))

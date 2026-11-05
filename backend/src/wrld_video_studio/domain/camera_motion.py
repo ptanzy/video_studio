@@ -29,18 +29,22 @@ def camera_state(
     target_duration: float,
     *,
     final_frame: bool = False,
+    canvas_width: int = CANVAS_WIDTH,
+    canvas_height: int = CANVAS_HEIGHT,
 ) -> CameraState:
     if target_duration <= 0 or not math.isfinite(target_duration):
         raise ValueError("target_duration must be finite and positive")
     if time_seconds < 0 or not math.isfinite(time_seconds):
         raise ValueError("time_seconds must be finite and nonnegative")
+    if type(canvas_width) is not int or type(canvas_height) is not int or canvas_width < 1 or canvas_height < 1:
+        raise ValueError("canvas dimensions must be positive integers")
     time_seconds = min(time_seconds, target_duration)
     if not settings.enabled:
         return CameraState(1.0, 0.0, 0.0)
     return_duration = min(settings.return_duration_seconds, target_duration / 2.0)
     return_start = target_duration - return_duration
     if settings.return_to_origin and (time_seconds >= return_start or final_frame):
-        origin = _cycle_state(settings, return_start)
+        origin = _cycle_state(settings, return_start, canvas_width, canvas_height)
         progress = 1.0 if final_frame else (time_seconds - return_start) / return_duration
         remaining = 1.0 - smoothstep(progress)
         return CameraState(
@@ -48,7 +52,7 @@ def camera_state(
             origin.x * remaining,
             origin.y * remaining,
         )
-    return _cycle_state(settings, time_seconds)
+    return _cycle_state(settings, time_seconds, canvas_width, canvas_height)
 
 
 def camera_filter(
@@ -58,6 +62,8 @@ def camera_filter(
     start_time_seconds: float = 0.0,
     preview: bool = False,
     frames_per_input: int = 1,
+    canvas_width: int = CANVAS_WIDTH,
+    canvas_height: int = CANVAS_HEIGHT,
 ) -> str | None:
     """Return the deterministic zoompan filter for the approved 1080p30 profile."""
     if not settings.enabled:
@@ -68,6 +74,8 @@ def camera_filter(
         raise ValueError("start_time_seconds must be before the target end")
     if type(frames_per_input) is not int or frames_per_input < 1:
         raise ValueError("frames_per_input must be a positive integer")
+    if type(canvas_width) is not int or type(canvas_height) is not int or canvas_width < 1 or canvas_height < 1:
+        raise ValueError("canvas dimensions must be positive integers")
     frame_count = max(1, math.ceil(target_duration * FRAME_RATE))
     last_frame = frame_count - 1
     time_expr = f"on/{FRAME_RATE}"
@@ -82,7 +90,13 @@ def camera_filter(
     if settings.return_to_origin:
         return_duration = min(settings.return_duration_seconds, target_duration / 2.0)
         return_start = target_duration - return_duration
-        start = camera_state(settings, return_start, target_duration)
+        start = camera_state(
+            settings,
+            return_start,
+            target_duration,
+            canvas_width=canvas_width,
+            canvas_height=canvas_height,
+        )
         progress = f"clip(({time_expr}-{_number(return_start)})/{_number(return_duration)},0,1)"
         eased = f"({progress})*({progress})*(3-2*({progress}))"
         remaining = f"1-({eased})"
@@ -98,17 +112,22 @@ def camera_filter(
             y = f"if(gte(on,{last_frame}),0,{return_y})"
     return (
         f"zoompan=z='{zoom}':x='{x}':y='{y}':d={frames_per_input}:"
-        f"s={CANVAS_WIDTH}x{CANVAS_HEIGHT}:fps={FRAME_RATE}"
+        f"s={canvas_width}x{canvas_height}:fps={FRAME_RATE}"
     )
 
 
-def _cycle_state(settings: PanZoomSettings, time_seconds: float) -> CameraState:
+def _cycle_state(
+    settings: PanZoomSettings,
+    time_seconds: float,
+    canvas_width: int = CANVAS_WIDTH,
+    canvas_height: int = CANVAS_HEIGHT,
+) -> CameraState:
     phase = (time_seconds % settings.cycle_seconds) / settings.cycle_seconds
     triangular = 2.0 * phase if phase <= 0.5 else 2.0 * (1.0 - phase)
     eased = smoothstep(triangular)
     zoom = 1.0 + (settings.max_zoom - 1.0) * eased
-    safe_x = CANVAS_WIDTH - CANVAS_WIDTH / zoom
-    safe_y = CANVAS_HEIGHT - CANVAS_HEIGHT / zoom
+    safe_x = canvas_width - canvas_width / zoom
+    safe_y = canvas_height - canvas_height / zoom
     center_x = safe_x / 2.0
     center_y = safe_y / 2.0
     x_factor, y_factor = _path_factors(settings.path, eased)

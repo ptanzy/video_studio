@@ -10,10 +10,24 @@ import type { WRLDPortableYouTubeMetadataV1 } from './generated/youtube-metadata
 import type { WRLDPrivateProjectCatalogV2 } from './generated/project-catalog-v2'
 import type { Asset as InventoryAssetTransport, WRLDProjectInventoryV1 } from './generated/project-inventory-v1'
 import type { WRLDProjectScanStatusV1 } from './generated/project-scan-v1'
+import type { WRLDCreationRenderRequestV1 } from './generated/creation-render-request-v1'
+import type { WRLDCreationRenderPreflightV1 } from './generated/creation-render-preflight-v1'
+import type { WRLDCreationRenderTargetsV1 } from './generated/creation-render-targets-v1'
+import type { WRLDCreationRenderJobV1 } from './generated/creation-render-job-v1'
+import type { WRLDCreationRenderResultV1 } from './generated/creation-render-result-v1'
+import type { WRLDCreationRenderRecoveryRequestV1 } from './generated/creation-render-recovery-request-v1'
+import type { WRLDCreationRenderRecoveryPreflightV1 } from './generated/creation-render-recovery-preflight-v1'
 
 export type SourceMode = 'backend' | 'inventory' | 'demonstration'
 export type YouTubeMetadataState = WRLDYouTubeMetadataEditorStateV1
 export type YouTubeMetadataExport = WRLDPortableYouTubeMetadataV1
+export type CreationRenderRequest = WRLDCreationRenderRequestV1
+export type CreationRenderPreflight = WRLDCreationRenderPreflightV1
+export type CreationRenderTargets = WRLDCreationRenderTargetsV1
+export type CreationRenderJob = WRLDCreationRenderJobV1
+export type CreationRenderResult = WRLDCreationRenderResultV1
+export type CreationRenderRecoveryRequest = WRLDCreationRenderRecoveryRequestV1
+export type CreationRenderRecoveryPreflight = WRLDCreationRenderRecoveryPreflightV1
 
 export interface MetadataDiagnostic { code: string; severity: 'error' | 'warning'; target_key: string | null; field: string | null; message: string; details: Record<string, unknown> }
 export interface MetadataValidation { contract_version: 'wrld-youtube-metadata-validation/1.0'; mode: 'draft' | 'approval' | 'export'; valid: boolean; target_fingerprints: Array<{ target_key: string; approval_fingerprint: string | null }>; diagnostics: MetadataDiagnostic[] }

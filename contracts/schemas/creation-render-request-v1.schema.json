@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/creation-render-request-v1.schema.json",
+  "title": "WRLD Creation Render Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "mode", "target", "expected_creation_revision", "expected_creation_state_digest", "profile_id", "expected_plan_fingerprint", "submission_id", "output_action", "replacement"],
+  "properties": {
+    "contract_version": {"const": "wrld-creation-render-request/1.0"},
+    "mode": {"enum": ["preflight", "submit"]},
+    "target": {"$ref": "creation-render-common-v1.schema.json#/$defs/target"},
+    "expected_creation_revision": {"type": "integer", "minimum": 1},
+    "expected_creation_state_digest": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+    "profile_id": {"enum": ["wrld-album-1080p30-v1", "wrld-single-1080p30-v1", "wrld-short-1080x1920p30-v1"]},
+    "expected_plan_fingerprint": {"oneOf": [{"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"}, {"type": "null"}]},
+    "submission_id": {"oneOf": [{"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"}, {"type": "null"}]},
+    "output_action": {"enum": ["reuse_verified_or_fail", "replace_verified"]},
+    "replacement": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["artifact_id", "expected_sha256", "expected_report_revision"],
+          "properties": {
+            "artifact_id": {"type": "string", "pattern": "^artifact-[0-9a-f]{64}$"},
+            "expected_sha256": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+            "expected_report_revision": {"type": "integer", "minimum": 0}
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"mode": {"const": "preflight"}}}, "then": {"properties": {"expected_plan_fingerprint": {"type": "null"}, "submission_id": {"type": "null"}}}},
+    {"if": {"properties": {"mode": {"const": "submit"}}}, "then": {"properties": {"expected_plan_fingerprint": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"}, "submission_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"}}}},
+    {"if": {"properties": {"output_action": {"const": "reuse_verified_or_fail"}}}, "then": {"properties": {"replacement": {"type": "null"}}}},
+    {"if": {"properties": {"output_action": {"const": "replace_verified"}}}, "then": {"properties": {"replacement": {"type": "object"}}}}
+  ]
+}

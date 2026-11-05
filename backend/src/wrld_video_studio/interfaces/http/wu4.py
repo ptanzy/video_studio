@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import Any
 
 from fastapi import APIRouter, Query, Request
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 
 from wrld_video_studio.domain.wu4 import API_ERROR_VERSION, WU4Error
 from wrld_video_studio.interfaces.http.wu4_models import ExportMetadataModel, ExportPreviewModel, InitializeMetadataModel, ReconcileMetadataModel, ReconcilePreviewModel, RegisterProjectModel, RelinkAssetModel, RelinkProjectModel, SaveEditorStateModel, SaveProjectDocumentModel, StartScanModel, ValidateMetadataModel
@@ -36,6 +37,17 @@ WU4_HTTP_STATUS = {
     "METADATA_EXPORT_OWNERSHIP_UNKNOWN": 409,
     "METADATA_STATE_INVALID": 422, "METADATA_VALIDATION_FAILED": 422,
     "METADATA_APPROVAL_INVALID": 422, "METADATA_EXPORT_SELECTION_INVALID": 422,
+    "CREATION_V4_REQUIRED": 409, "CREATION_STATE_STALE": 409,
+    "COMPOSITION_NOT_FOUND": 404, "COMPOSITION_ARCHIVED": 409,
+    "PROFILE_TARGET_MISMATCH": 422, "PLAN_STALE": 409,
+    "OUTPUT_EXISTS": 409, "OUTPUT_REPLACEMENT_STALE": 409,
+    "RENDER_NOT_COMPLETE": 409, "RENDER_NOT_CANCELLABLE": 409,
+    "RECORDING_MISSING": 422, "RECORDING_EXCLUDED": 422,
+    "RECORDING_CHANGED": 409, "RECORDING_UNSUPPORTED": 422,
+    "VISUAL_SOURCE_REQUIRED": 422, "VISUAL_SOURCE_MISSING": 422,
+    "VISUAL_SOURCE_EXCLUDED": 422, "VISUAL_SOURCE_CHANGED": 409,
+    "VISUAL_SOURCE_UNSUPPORTED": 422, "EXCERPT_OUT_OF_RANGE": 422,
+    "OUTPUT_PATH_INVALID": 422,
 }
 
 
@@ -153,6 +165,68 @@ def preview_youtube_metadata_export(project_id: str, payload: ExportPreviewModel
 @router.post("/projects/{project_id}/youtube-metadata/exports")
 def export_youtube_metadata(project_id: str, payload: ExportMetadataModel, request: Request):
     return _runtime(request).youtube_metadata.export(project_id, payload.expected_revision, payload.target_keys, payload.preview_fingerprint, payload.replace_existing, payload.expected_existing_sha256)
+
+
+@router.get("/projects/{project_id}/render-targets")
+def render_targets(project_id: str, request: Request):
+    return _runtime(request).creation_render.targets(project_id)
+
+
+@router.post("/projects/{project_id}/render-preflights")
+def render_preflight(project_id: str, payload: dict[str, Any], request: Request):
+    return _runtime(request).creation_render.preflight(project_id, payload)
+
+
+@router.post("/projects/{project_id}/render-jobs")
+def submit_render(project_id: str, payload: dict[str, Any], request: Request):
+    job, created = _runtime(request).creation_render.submit(project_id, payload)
+    return JSONResponse(status_code=202 if created else 200, content=job)
+
+
+@router.post("/projects/{project_id}/render-recovery-preflights")
+def render_recovery_preflight(project_id: str, payload: dict[str, Any], request: Request):
+    return _runtime(request).creation_render.recovery_preflight(project_id, payload)
+
+
+@router.post("/projects/{project_id}/render-recovery-jobs")
+def submit_render_recovery(project_id: str, payload: dict[str, Any], request: Request):
+    job, created = _runtime(request).creation_render.submit_recovery(project_id, payload)
+    return JSONResponse(status_code=202 if created else 200, content=job)
+
+
+@router.get("/projects/{project_id}/render-jobs")
+def render_jobs(project_id: str, request: Request, state: str | None = None, composition_id: str | None = None):
+    jobs = _runtime(request).creation_render.list_jobs(project_id)
+    if state is not None: jobs = [item for item in jobs if item["state"] == state]
+    if composition_id is not None: jobs = [item for item in jobs if item["target"]["composition_id"] == composition_id]
+    return jobs
+
+
+@router.get("/projects/{project_id}/render-jobs/{job_id}")
+def render_job(project_id: str, job_id: str, request: Request):
+    return _runtime(request).creation_render.get_job(project_id, job_id)
+
+
+@router.get("/projects/{project_id}/render-jobs/{job_id}/result")
+def render_result(project_id: str, job_id: str, request: Request):
+    return _runtime(request).creation_render.result(project_id, job_id)
+
+
+@router.delete("/projects/{project_id}/render-jobs/{job_id}")
+def cancel_render(project_id: str, job_id: str, request: Request):
+    job = _runtime(request).creation_render.cancel(project_id, job_id)
+    return JSONResponse(status_code=202 if job["state"] == "cancel_requested" else 200, content=job)
+
+
+@router.get("/projects/{project_id}/render-artifacts/{artifact_id}")
+def render_artifact(project_id: str, artifact_id: str, request: Request):
+    return _runtime(request).creation_render.artifact(project_id, artifact_id)
+
+
+@router.get("/projects/{project_id}/render-artifacts/{artifact_id}/content")
+def render_artifact_content(project_id: str, artifact_id: str, request: Request):
+    path = _runtime(request).creation_render.artifact_path(project_id, artifact_id)
+    return FileResponse(path, media_type="video/mp4", filename=path.name, headers={"Cache-Control": "private, must-revalidate"})
 
 
 @router.get("/projects/{project_id}/inventory")

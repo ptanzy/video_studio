@@ -1,0 +1,11 @@
+{
+  "contract_version": "wrld-creation-render-timeline/1.0",
+  "timeline_id": "timeline-3333333333333333333333333333333333333333333333333333333333333333",
+  "sample_rate": 48000,
+  "total_samples": 15840000,
+  "duration_seconds": 330.0,
+  "entries": [
+    {"sequence": 1, "assignment_id": "assignment-01", "asset_id": "audio-01", "asset_sha256": "1111111111111111111111111111111111111111111111111111111111111111", "source_start_sample": 0, "output_start_sample": 0, "sample_count": 8640000, "output_end_sample": 8640000},
+    {"sequence": 2, "assignment_id": "assignment-02", "asset_id": "audio-02", "asset_sha256": "2222222222222222222222222222222222222222222222222222222222222222", "source_start_sample": 0, "output_start_sample": 8640000, "sample_count": 7200000, "output_end_sample": 15840000}
+  ]
+}

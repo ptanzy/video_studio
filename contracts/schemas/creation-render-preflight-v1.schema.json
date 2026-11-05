@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/creation-render-preflight-v1.schema.json",
+  "title": "WRLD Creation Render Preflight v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "status", "request_fingerprint", "plan", "diagnostics", "existing_artifact", "report_revision"],
+  "properties": {
+    "contract_version": {"const": "wrld-creation-render-preflight/1.0"},
+    "status": {"enum": ["ready", "blocked", "replacement_required"]},
+    "request_fingerprint": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+    "plan": {"oneOf": [{"$ref": "creation-render-plan-v1.schema.json"}, {"type": "null"}]},
+    "diagnostics": {"type": "array", "items": {"$ref": "creation-render-common-v1.schema.json#/$defs/diagnostic"}},
+    "existing_artifact": {"oneOf": [{"$ref": "creation-render-common-v1.schema.json#/$defs/verifiedArtifact"}, {"type": "null"}]},
+    "report_revision": {"type": "integer", "minimum": 0}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "ready"}}}, "then": {"properties": {"plan": {"$ref": "creation-render-plan-v1.schema.json"}}}},
+    {"if": {"properties": {"status": {"const": "blocked"}}}, "then": {"properties": {"plan": {"type": "null"}}, "minProperties": 7}},
+    {"if": {"properties": {"status": {"const": "replacement_required"}}}, "then": {"properties": {"existing_artifact": {"$ref": "creation-render-common-v1.schema.json#/$defs/verifiedArtifact"}}}}
+  ]
+}

@@ -160,6 +160,17 @@ def test_filter_can_emit_a_bounded_sequence_from_one_still_input():
     assert ":d=120:s=1920x1080:fps=30" in value
 
 
+def test_portrait_filter_and_return_state_use_portrait_canvas_dimensions():
+    settings = PanZoomSettings(enabled=True, max_zoom=1.04, cycle_seconds=180)
+    landscape = camera_state(settings, 40, 45, canvas_width=1920, canvas_height=1080)
+    portrait = camera_state(settings, 40, 45, canvas_width=1080, canvas_height=1920)
+    value = camera_filter(settings, 45, canvas_width=1080, canvas_height=1920)
+
+    assert portrait.x < landscape.x
+    assert portrait.y > landscape.y
+    assert value is not None and ":s=1080x1920:fps=30" in value
+
+
 @pytest.mark.parametrize("value", [0, -1, 1.5, True])
 def test_filter_rejects_invalid_frames_per_input(value):
     with pytest.raises(ValueError, match="frames_per_input"):

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/creation-render-targets-v1.schema.json",
+  "title": "WRLD Creation Render Targets v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "project_id", "creation_basis", "targets"],
+  "properties": {
+    "contract_version": {"const": "wrld-creation-render-targets/1.0"},
+    "project_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"},
+    "creation_basis": {"type": "object", "additionalProperties": false, "required": ["contract_version", "revision", "state_digest"], "properties": {"contract_version": {"const": "wrld-creation-state/4.0"}, "revision": {"type": "integer", "minimum": 1}, "state_digest": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"}}},
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["target", "label", "status", "profile_id", "preflight_required", "latest_artifact"],
+        "properties": {
+          "target": {"$ref": "creation-render-common-v1.schema.json#/$defs/target"},
+          "label": {"type": "string", "minLength": 1, "maxLength": 256},
+          "status": {"enum": ["active", "archived"]},
+          "profile_id": {"enum": ["wrld-album-1080p30-v1", "wrld-single-1080p30-v1", "wrld-short-1080x1920p30-v1"]},
+          "preflight_required": {"const": true},
+          "latest_artifact": {"oneOf": [{"$ref": "creation-render-common-v1.schema.json#/$defs/verifiedArtifact"}, {"type": "null"}]}
+        }
+      }
+    }
+  }
+}

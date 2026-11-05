@@ -13,20 +13,29 @@ from wrld_video_studio.infrastructure.media_tools import MediaToolchain
 
 
 class FFprobeAdapter(MediaProber):
-    def __init__(self, toolchain: MediaToolchain, runner: ProcessRunner, *, timeout_seconds: float = 15.0) -> None:
+    def __init__(
+        self,
+        toolchain: MediaToolchain,
+        runner: ProcessRunner,
+        *,
+        timeout_seconds: float = 15.0,
+        count_frames: bool = True,
+    ) -> None:
         self.toolchain = toolchain
         self.runner = runner
         self.timeout_seconds = timeout_seconds
+        self.count_frames = count_frames
 
     def probe(self, path: Path) -> MediaProbe:
         if not path.is_file():
             raise MediaInfrastructureError("ASSET_NOT_FOUND", "Media input file does not exist.")
         tool = self.toolchain.resolve("ffprobe")
+        arguments = [str(tool.path), "-v", "error"]
+        if self.count_frames:
+            arguments.append("-count_frames")
+        arguments.extend(["-show_format", "-show_streams", "-of", "json", str(path)])
         result = self.runner.run(
-            [
-                str(tool.path), "-v", "error", "-count_frames", "-show_format", "-show_streams",
-                "-of", "json", str(path),
-            ],
+            arguments,
             timeout_seconds=self.timeout_seconds,
         )
         if result.timed_out:

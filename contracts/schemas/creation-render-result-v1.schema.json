@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrld.local/schemas/creation-render-result-v1.schema.json",
+  "title": "WRLD Creation Render Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "job_id", "attempt_id", "project_id", "target", "state", "plan_fingerprint", "creation_basis", "profile_id", "renderer_id", "renderer_version", "timeline", "artifacts", "diagnostics", "started_at", "finished_at"],
+  "properties": {
+    "contract_version": {"const": "wrld-creation-render-result/1.0"},
+    "job_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"},
+    "attempt_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"},
+    "project_id": {"$ref": "creation-render-common-v1.schema.json#/$defs/uuid"},
+    "target": {"$ref": "creation-render-common-v1.schema.json#/$defs/target"},
+    "state": {"enum": ["succeeded", "failed", "cancelled"]},
+    "plan_fingerprint": {"$ref": "creation-render-common-v1.schema.json#/$defs/sha256"},
+    "creation_basis": {"$ref": "creation-render-common-v1.schema.json#/$defs/creationBasis"},
+    "profile_id": {"enum": ["wrld-album-1080p30-v1", "wrld-single-1080p30-v1", "wrld-short-1080x1920p30-v1"]},
+    "renderer_id": {"const": "wrld-creation-renderer"},
+    "renderer_version": {"type": "string", "minLength": 1, "maxLength": 128},
+    "timeline": {"$ref": "creation-render-common-v1.schema.json#/$defs/timeline"},
+    "artifacts": {"type": "array", "maxItems": 1, "items": {"$ref": "creation-render-common-v1.schema.json#/$defs/verifiedArtifact"}},
+    "diagnostics": {"type": "array", "items": {"$ref": "creation-render-common-v1.schema.json#/$defs/diagnostic"}},
+    "started_at": {"$ref": "creation-render-common-v1.schema.json#/$defs/timestamp"},
+    "finished_at": {"$ref": "creation-render-common-v1.schema.json#/$defs/timestamp"}
+  },
+  "allOf": [
+    {"if": {"properties": {"state": {"const": "succeeded"}}}, "then": {"properties": {"artifacts": {"minItems": 1, "maxItems": 1}}}},
+    {"if": {"properties": {"state": {"enum": ["failed", "cancelled"]}}}, "then": {"properties": {"artifacts": {"maxItems": 0}}}}
+  ]
+}

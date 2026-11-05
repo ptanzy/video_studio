@@ -4,6 +4,13 @@ import re
 import pytest
 
 from wrld_video_studio.domain.jobs import ProcessExecution
+from wrld_video_studio.domain.creation_render import (
+    CreationRenderExecutionPlan,
+    CreationRenderExcerpt,
+    CreationRenderManifest,
+    CreationRenderRequest,
+    effects_from_visual_configuration,
+)
 from wrld_video_studio.domain.media_errors import MediaInfrastructureError
 from wrld_video_studio.domain.motion_preview import (
     MotionPreviewExcerpt,
@@ -12,6 +19,7 @@ from wrld_video_studio.domain.motion_preview import (
 )
 from wrld_video_studio.domain.video_export import (
     ExportTarget,
+    VideoTrack,
     VideoExportRequest,
     create_plan,
     parse_manifest,
@@ -139,6 +147,45 @@ def test_product_renderer_uses_approved_profile_and_sample_counts(tmp_path):
     for option in ("-colorspace", "-color_primaries", "-color_trc"):
         assert command[command.index(option) + 1] == "bt709"
     assert output.read_bytes() == b"mp4"
+
+
+def test_creation_renderer_emits_portrait_alpha_safe_fit_and_approved_profile(tmp_path):
+    ffmpeg = tmp_path / "ffmpeg.exe"; ffprobe = tmp_path / "ffprobe.exe"
+    ffmpeg.write_bytes(b"tool"); ffprobe.write_bytes(b"tool")
+    audio = tmp_path / "source.wav"; background = tmp_path / "background.png"
+    audio.write_bytes(b"source"); background.write_bytes(b"image")
+    visual = {
+        "canvas": {"aspect_ratio": "9:16"},
+        "background_image": {"asset_id": "image-1", "expected_sha256": "a" * 64},
+        "geometry": {"fit_mode": "contain", "focal_x": 0.5, "focal_y": 0.25},
+        "camera": {"mode": "static", "max_zoom": 1.03},
+        "visualizer": {"enabled": False, "bar_count": 24, "opacity": 0.65},
+        "progress": {"enabled": False}, "color_treatment": {"mode": "none"},
+    }
+    target = {"kind": "short", "composition_id": "short-1"}
+    request = CreationRenderRequest(
+        ExportTarget("album"), effects_from_visual_configuration(target, visual),
+        CreationRenderExcerpt(0, 48_000), visual, 1080, 1920,
+    )
+    plan = CreationRenderExecutionPlan(
+        CreationRenderManifest("background.png"), request,
+        (VideoTrack("audio-1", 1, "Audio", "source.wav"),),
+        "shorts/short-1.mp4", "short_video",
+    )
+    runner = FakeRunner()
+    renderer = StaticVideoExportRenderer(MediaToolchain(runner, {"ffmpeg": ffmpeg, "ffprobe": ffprobe}), runner)
+    renderer.render(
+        plan, (audio,), background, tmp_path / "stage" / "video.mp4",
+        (tmp_path / "stage" / "one.pcm",), tmp_path / "stage" / "combined.pcm",
+        "a" * 64, source_sample_counts=(48_000,),
+    )
+    command = next(argv for argv, _timeout in runner.calls if "libx264" in argv)
+    graph = command[command.index("-filter_complex") + 1]
+    assert "color=c=black:s=1080x1920" in graph
+    assert "scale=1080:1920:force_original_aspect_ratio=decrease" in graph
+    assert "overlay=(W-w)*0.5:(H-h)*0.25" in graph
+    assert "zoompan=" not in graph
+    assert command[command.index("-profile:v") + 1] == "high"
 
 
 def _motion_plan(*, enabled=False, bars=False, progress=False):

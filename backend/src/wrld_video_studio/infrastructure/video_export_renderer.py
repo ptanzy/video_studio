@@ -9,6 +9,7 @@ from typing import Any
 
 from wrld_video_studio.application.ports.media import ProcessRunner
 from wrld_video_studio.domain.camera_motion import camera_filter
+from wrld_video_studio.domain.creation_render import CreationRenderExecutionPlan
 from wrld_video_studio.domain.media_errors import MediaInfrastructureError
 from wrld_video_studio.domain.motion_preview import MotionPreviewPlan, validate_excerpt
 from wrld_video_studio.domain.motion_preview_v2 import RefinedMotionPreviewPlan
@@ -40,6 +41,7 @@ from wrld_video_studio.domain.visual_refinement import (
 )
 from wrld_video_studio.infrastructure.media_tools import MediaToolchain
 from wrld_video_studio.infrastructure.progress import FFmpegProgressParser
+from wrld_video_studio.infrastructure.still_image_renderer import _treatment_filter_graph
 from wrld_video_studio.infrastructure.video_effect_controls import (
     EffectControlPlan,
     VideoEffectControlBuilder,
@@ -54,6 +56,7 @@ ResolvedRenderPlan = (
     | RefinedMotionPreviewPlan
     | PlayerVideoExportPlan
     | PlayerMotionPreviewPlan
+    | CreationRenderExecutionPlan
 )
 MotionRenderPlan = (
     MotionVideoExportPlan
@@ -62,6 +65,7 @@ MotionRenderPlan = (
     | RefinedMotionPreviewPlan
     | PlayerVideoExportPlan
     | PlayerMotionPreviewPlan
+    | CreationRenderExecutionPlan
 )
 
 
@@ -121,7 +125,7 @@ class StaticVideoExportRenderer:
         ffmpeg = self.toolchain.resolve("ffmpeg")
         if isinstance(
             plan,
-            (MotionVideoExportPlan, RefinedVideoExportPlan, PlayerVideoExportPlan, MotionPreviewPlan, RefinedMotionPreviewPlan, PlayerMotionPreviewPlan),
+            (MotionVideoExportPlan, RefinedVideoExportPlan, PlayerVideoExportPlan, MotionPreviewPlan, RefinedMotionPreviewPlan, PlayerMotionPreviewPlan, CreationRenderExecutionPlan),
         ) and (
             plan.request.effects.audio_bars.enabled
             or plan.request.effects.track_progress.enabled
@@ -129,7 +133,8 @@ class StaticVideoExportRenderer:
         ):
             self._require_effect_filters(ffmpeg.path, plan)
         preview = isinstance(plan, (MotionPreviewPlan, RefinedMotionPreviewPlan, PlayerMotionPreviewPlan))
-        bounded_preview = preview and source_sample_counts is not None
+        creation = isinstance(plan, CreationRenderExecutionPlan)
+        bounded_preview = (preview or creation) and source_sample_counts is not None
         if source_sample_counts is not None and (
             len(source_sample_counts) != len(audio_sources)
             or any(type(value) is not int or value <= 0 for value in source_sample_counts)
@@ -140,8 +145,8 @@ class StaticVideoExportRenderer:
         sample_counts: list[int] = list(source_sample_counts or ())
         timeline = build_timeline(plan.selected_tracks, tuple(sample_counts)) if bounded_preview else ()
         target_total_samples = sum(sample_counts) if bounded_preview else 0
-        excerpt_start = plan.request.excerpt.start_sample if preview else 0
-        excerpt_samples = plan.request.excerpt.sample_count if preview else target_total_samples
+        excerpt_start = plan.request.excerpt.start_sample if (preview or creation) else 0
+        excerpt_samples = plan.request.excerpt.sample_count if (preview or creation) else target_total_samples
         if bounded_preview:
             validate_excerpt(plan.request.excerpt, target_total_samples)
         pcm_windows: list[tuple[int, int]] = []
@@ -225,8 +230,8 @@ class StaticVideoExportRenderer:
         if not bounded_preview:
             timeline = build_timeline(plan.selected_tracks, tuple(sample_counts))
             target_total_samples = sum(sample_counts)
-            excerpt_samples = plan.request.excerpt.sample_count if preview else target_total_samples
-        if preview:
+            excerpt_samples = plan.request.excerpt.sample_count if (preview or creation) else target_total_samples
+        if preview or creation:
             validate_excerpt(plan.request.excerpt, target_total_samples)
         self._report(
             progress,
@@ -238,7 +243,7 @@ class StaticVideoExportRenderer:
         effect_control = EffectControlPlan((), 0, 0)
         if isinstance(
             plan,
-            (MotionVideoExportPlan, RefinedVideoExportPlan, PlayerVideoExportPlan, MotionPreviewPlan, RefinedMotionPreviewPlan, PlayerMotionPreviewPlan),
+            (MotionVideoExportPlan, RefinedVideoExportPlan, PlayerVideoExportPlan, MotionPreviewPlan, RefinedMotionPreviewPlan, PlayerMotionPreviewPlan, CreationRenderExecutionPlan),
         ) and (
             plan.request.effects.audio_bars.enabled
             or plan.request.effects.track_progress.enabled
@@ -248,7 +253,7 @@ class StaticVideoExportRenderer:
                     "INVALID_RENDER_PLAN", "Effect-control staging was not allocated."
                 )
             control_options: dict[str, Any] = {}
-            if preview:
+            if preview or creation:
                 control_options = {
                     "start_sample": excerpt_start,
                     "sample_count": excerpt_samples,
@@ -263,6 +268,8 @@ class StaticVideoExportRenderer:
                 progress_width=(
                     plan.request.resolved_player.layout.progress_row.width - 216
                     if isinstance(plan, (PlayerVideoExportPlan, PlayerMotionPreviewPlan))
+                    else plan.request.width - 128
+                    if isinstance(plan, CreationRenderExecutionPlan)
                     else None
                 ),
                 progress_color=(
@@ -343,7 +350,14 @@ class StaticVideoExportRenderer:
                 f"{effect_control.bar_control_width}x1", "-framerate", "30",
                 "-i", str(effect_control.bar_control_path),
             ])
-        if player_overlays:
+        if creation:
+            assert isinstance(plan, CreationRenderExecutionPlan)
+            complex_filter = self._creation_filter_complex(
+                plan, duration, effect_control, effect_control_path,
+                target_duration=target_duration, start_sample=excerpt_start,
+            )
+            args.extend(["-filter_complex", complex_filter, "-map", "[vout]", "-map", "1:a:0"])
+        elif player_overlays:
             if font_path is None:
                 raise MediaInfrastructureError("INVALID_RENDER_PLAN", "Player font staging is unavailable.")
             complex_filter = self._player_filter_complex(
@@ -644,6 +658,110 @@ class StaticVideoExportRenderer:
         return ";".join(graph)
 
     @staticmethod
+    def _creation_filter_complex(
+        plan: CreationRenderExecutionPlan,
+        duration: float,
+        effect_control: EffectControlPlan,
+        effect_control_path: Path | None,
+        *,
+        target_duration: float,
+        start_sample: int,
+    ) -> str:
+        effects = plan.request.effects
+        visual = plan.request.visual_configuration
+        width, height = plan.request.width, plan.request.height
+        geometry = visual["geometry"]
+        fx = format(float(geometry["focal_x"]), ".12g")
+        fy = format(float(geometry["focal_y"]), ".12g")
+        graph = [f"color=c=black:s={width}x{height}:r=30:d={duration:.9f},format=rgba[black]"]
+        if geometry["fit_mode"] == "contain":
+            fitted = (
+                f"[0:v]scale={width}:{height}:force_original_aspect_ratio=decrease:flags=lanczos:out_color_matrix=bt709,"
+                "format=rgba[fit]"
+            )
+            graph.extend([fitted, f"[black][fit]overlay=(W-w)*{fx}:(H-h)*{fy}:format=auto[composed]"])
+        else:
+            fitted = (
+                f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase:flags=lanczos:out_color_matrix=bt709,"
+                f"crop={width}:{height}:(iw-ow)*{fx}:(ih-oh)*{fy},format=rgba[fit]"
+            )
+            graph.extend([fitted, "[black][fit]overlay=0:0:format=auto[composed]"])
+        post_filters: list[str] = []
+        treatment = visual["color_treatment"]
+        if treatment["mode"] == "custom" and float(treatment["intensity"]) > 0:
+            post_filters.append(_treatment_filter_graph(
+                str(treatment["hex"]).upper(), float(treatment["intensity"]), width, height
+            ))
+        camera = camera_filter(
+            effects.pan_zoom,
+            target_duration,
+            start_time_seconds=start_sample / SAMPLE_RATE,
+            preview=False,
+            canvas_width=width,
+            canvas_height=height,
+        )
+        if camera is not None:
+            post_filters.append(camera)
+        post_filters.append("format=rgba")
+        base = "[composed]" + ",".join(post_filters)
+        sendcmd = ""
+        if effect_control.command_count:
+            if effect_control_path is None:
+                raise MediaInfrastructureError("INVALID_RENDER_PLAN", "Effect-control staging is unavailable.")
+            sendcmd = f",sendcmd=filename='{StaticVideoExportRenderer._filter_path(effect_control_path)}'"
+            if not effects.audio_bars.enabled or effect_control.bar_control_path is not None:
+                base += sendcmd
+        graph.append(base + "[base]")
+        current = "base"
+
+        bars = effects.audio_bars
+        if bars.enabled:
+            padding = GLOW_PADDING_PX
+            zone_x = (width - bars.zone_width_px) // 2
+            zone_y = height - bars.bottom_margin_px - bars.zone_height_px
+            occupied_gaps = bars.gap_px * (bars.bar_count - 1)
+            bar_width = max(1, (bars.zone_width_px - occupied_gaps) // bars.bar_count)
+            occupied = bar_width * bars.bar_count + occupied_gaps
+            start_x = zone_x + (bars.zone_width_px - occupied) // 2
+            layer_width = bars.zone_width_px + 2 * padding
+            layer_height = bars.zone_height_px + 2 * padding
+            crop_x, crop_y = zone_x - padding, zone_y - padding
+            draw = f"color=c=black@0.0:s={layer_width}x{layer_height}:r=30:d={duration:.9f},format=rgba" + sendcmd
+            local_start = start_x - zone_x + padding
+            zone_bottom = padding + bars.zone_height_px
+            for index in range(bars.bar_count):
+                x = local_start + index * (bar_width + bars.gap_px)
+                draw += f",drawbox@wrld_bar_{index:02d}=x={x}:y={zone_bottom}-h:w={bar_width}:h=2:color=white@1.0:t=fill:replace=1"
+            if bars.glow.enabled and bars.glow.intensity > 0:
+                graph.extend([
+                    draw + "[bar_mask]",
+                    "[bar_mask]split=2[glow_mask][crisp_mask]",
+                    "[glow_mask]" + StaticVideoExportRenderer._color_matrix(derive_glow_color(bars.color), bars.opacity * bars.glow.intensity * 0.60) + f",gblur=sigma={GLOW_SIGMA_PX}[glow_layer]",
+                    "[crisp_mask]" + StaticVideoExportRenderer._color_matrix(bars.color, bars.opacity) + "[crisp_layer]",
+                    "[glow_layer][crisp_layer]overlay=0:0:format=auto[bar_layer]",
+                ])
+            else:
+                graph.append(draw + "," + StaticVideoExportRenderer._color_matrix(bars.color, bars.opacity) + "[bar_layer]")
+            graph.append(f"[base][bar_layer]overlay={crop_x}:{crop_y}:format=auto[with_bars]")
+            current = "with_bars"
+
+        progress = effects.track_progress
+        if progress.enabled:
+            progress_width = width - 128
+            y = height - 64 - progress.thickness_px
+            rail = progress.rail_color or derive_rail_color(progress.color, progress.rail_contrast_strength)
+            chain = (
+                f"[{current}]drawbox@wrld_progress_rail=x=64:y={y}:w={progress_width}:h={progress.thickness_px}:"
+                f"color={StaticVideoExportRenderer._ffmpeg_color(rail, progress.rail_opacity)}:t=fill,"
+                f"drawbox@wrld_progress=x=64:y={y}:w=1:h={progress.thickness_px}:"
+                f"color={StaticVideoExportRenderer._ffmpeg_color(progress.color, 0.0)}:t=fill"
+            )
+            graph.append(chain + "[with_progress]")
+            current = "with_progress"
+        graph.append(f"[{current}]format=yuv420p,setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709[vout]")
+        return ";".join(graph)
+
+    @staticmethod
     def _player_filter_complex(
         plan: PlayerVideoExportPlan | PlayerMotionPreviewPlan,
         duration: float,
@@ -936,7 +1054,7 @@ class StaticVideoExportRenderer:
         required = {"scale", "pad", "format", "setparams", "sendcmd", "drawbox"}
         if isinstance(plan, (PlayerVideoExportPlan, PlayerMotionPreviewPlan)) and plan.request.effects.audio_bars.enabled:
             required.update({"geq", "alphamerge"})
-        if isinstance(plan, (RefinedVideoExportPlan, RefinedMotionPreviewPlan, PlayerVideoExportPlan, PlayerMotionPreviewPlan)):
+        if isinstance(plan, (RefinedVideoExportPlan, RefinedMotionPreviewPlan, PlayerVideoExportPlan, PlayerMotionPreviewPlan, CreationRenderExecutionPlan)):
             required.update({"color", "overlay", "colorchannelmixer"})
             bars = plan.request.effects.audio_bars
             if bars.enabled and bars.glow.enabled and bars.glow.intensity > 0.0:
@@ -945,6 +1063,10 @@ class StaticVideoExportRenderer:
             required.add("drawtext")
         if plan.request.effects.pan_zoom.enabled:
             required.add("zoompan")
+        if isinstance(plan, CreationRenderExecutionPlan):
+            required.add("crop")
+            if plan.request.visual_configuration["color_treatment"]["mode"] == "custom":
+                required.update({"zscale", "geq"})
         missing = sorted(required - self._available_filters)
         if missing:
             raise MediaInfrastructureError(
